@@ -158,7 +158,7 @@ bool messages_display(int8_t force_category) {
     if (g_last_message_time > 0) {
         uint32_t elapsed_minutes = (now - g_last_message_time) / 60;
         if (elapsed_minutes < g_config.min_interval_minutes) {
-            ESP_LOGD(TAG, "Too soon since last message (%d min)", elapsed_minutes);
+            ESP_LOGD(TAG, "Too soon since last message (%" PRIu32 " min)", elapsed_minutes);
             return false;
         }
     }
