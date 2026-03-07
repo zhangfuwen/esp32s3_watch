@@ -1,0 +1,38 @@
+# Build
+build/
+*.bin
+*.elf
+*.map
+*.app
+
+# Flash output
+flash_package/
+
+# ESP-IDF
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults
+managed_components/
+
+# CMake
+cmake_build/
+
+# Eclipse
+.cproject
+.project
+.debug/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+log/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

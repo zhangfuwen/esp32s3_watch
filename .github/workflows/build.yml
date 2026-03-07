@@ -1,0 +1,72 @@
+name: ESP32-S3 Watch Firmware CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.2.1
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build ESP32-S3 Watch Firmware
+      run: |
+        . /opt/esp/idf/export.sh
+        idf.py set-target esp32s3
+        idf.py build
+
+    - name: Generate Flash Package
+      run: |
+        mkdir -p flash_package
+        cp build/bootloader/bootloader.bin flash_package/
+        cp build/partition_table/partition-table.bin flash_package/
+        cp build/*.bin flash_package/esp32_s3_watch.bin
+        cp build/flash_args flash_package/
+        
+        # Create flash scripts
+        cat > flash_package/flash_linux.sh << 'SCRIPT'
+        #!/bin/bash
+        echo "ESP32-S3 Watch Flash Tool"
+        echo "=========================="
+        if [ -z "$1" ]; then
+            echo "Usage: ./flash_linux.sh [PORT]"
+            echo "Example: ./flash_linux.sh /dev/ttyUSB0"
+            exit 1
+        fi
+        esptool.py --chip esp32s3 -p "$1" write_flash \
+            --flash_mode dio \
+            --flash_freq 80m \
+            --flash_size 2MB \
+            0x0 bootloader.bin \
+            0x8000 partition-table.bin \
+            0x10000 esp32_s3_watch.bin
+        echo "Flash complete!"
+        SCRIPT
+        chmod +x flash_package/flash_linux.sh
+
+    - name: Upload Firmware Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp32-s3-watch-firmware
+        path: |
+          build/*.bin
+          build/bootloader/bootloader.bin
+          build/partition_table/partition-table.bin
+          flash_package/
+        retention-days: 30
+
+    - name: Create Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/*.bin
+          build/bootloader/bootloader.bin
+          build/partition_table/partition-table.bin
+        generate_release_notes: true
