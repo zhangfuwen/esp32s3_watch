@@ -7,8 +7,13 @@ idf_component_register(
         "input.c"
         "wifi.c"
         "bluetooth.c"
+        # Emotional Comfort Features
+        "comfort/breathing.c"
+        "comfort/messages.c"
+        "comfort/emergency.c"
     INCLUDE_DIRS 
         "../include"
+        "comfort"
     REQUIRES
         driver
         esp_wifi
@@ -18,4 +23,5 @@ idf_component_register(
         esp_common
         esp_hw_support
         esp_netif
+        esp_timer
 )
