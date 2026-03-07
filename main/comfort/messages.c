@@ -245,7 +245,6 @@ const char* messages_get_current(int8_t* category) {
         cat = messages_get_category_for_hour(get_current_hour());
     }
     
-    uint32_t now = get_timestamp();
     int selected_index = -1;
     uint32_t oldest_time = 0;
     
