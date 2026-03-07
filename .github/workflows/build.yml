@@ -24,49 +24,138 @@ jobs:
     - name: Generate Flash Package
       run: |
         mkdir -p flash_package
-        cp build/bootloader/bootloader.bin flash_package/
-        cp build/partition_table/partition-table.bin flash_package/
-        cp build/*.bin flash_package/esp32_s3_watch.bin
-        cp build/flash_args flash_package/
         
-        # Create flash scripts
+        # Copy binaries with correct names
+        cp build/bootloader/bootloader.bin flash_package/bootloader.bin
+        cp build/partition_table/partition-table.bin flash_package/partition-table.bin
+        cp build/esp32_s3_watch.bin flash_package/esp32_s3_watch.bin
+        
+        # Copy flash arguments
+        cp build/flash_args flash_package/flash_args
+        
+        # Create Windows flash script
+        cat > flash_package/flash_windows.bat << 'SCRIPT'
+        @echo off
+        echo ========================================
+        echo ESP32-S3 Watch Firmware Flash Tool
+        echo ========================================
+        echo.
+        if "%1"=="" (
+            echo Usage: flash_windows.bat [COM_PORT]
+            echo Example: flash_windows.bat COM8
+            echo.
+            set /p COM_PORT="Enter COM port (e.g., COM8): "
+        ) else (
+            set COM_PORT=%1
+        )
+        echo.
+        echo Flashing to %COM_PORT%...
+        echo.
+        esptool.py --chip esp32s3 -p %COM_PORT% ^
+            --before default_reset ^
+            --after hard_reset ^
+            write_flash ^
+            --flash_mode dio ^
+            --flash_freq 80m ^
+            --flash_size 2MB ^
+            0x0 bootloader.bin ^
+            0x8000 partition-table.bin ^
+            0x10000 esp32_s3_watch.bin
+        if %ERRORLEVEL% EQU 0 (
+            echo.
+            echo ========================================
+            echo Flash SUCCESSFUL!
+            echo ========================================
+        ) else (
+            echo.
+            echo ========================================
+            echo Flash FAILED!
+            echo ========================================
+        )
+        pause
+        SCRIPT
+        
+        # Create Linux/Mac flash script
         cat > flash_package/flash_linux.sh << 'SCRIPT'
         #!/bin/bash
-        echo "ESP32-S3 Watch Flash Tool"
-        echo "=========================="
+        echo "========================================"
+        echo "ESP32-S3 Watch Firmware Flash Tool"
+        echo "========================================"
+        echo ""
         if [ -z "$1" ]; then
             echo "Usage: ./flash_linux.sh [PORT]"
             echo "Example: ./flash_linux.sh /dev/ttyUSB0"
-            exit 1
+            echo ""
+            read -p "Enter port (e.g., /dev/ttyUSB0): " PORT
+        else
+            PORT=$1
         fi
-        esptool.py --chip esp32s3 -p "$1" write_flash \
+        echo ""
+        echo "Flashing to $PORT..."
+        echo ""
+        esptool.py --chip esp32s3 -p "$PORT" \
+            --before default_reset \
+            --after hard_reset \
+            write_flash \
             --flash_mode dio \
             --flash_freq 80m \
             --flash_size 2MB \
             0x0 bootloader.bin \
             0x8000 partition-table.bin \
             0x10000 esp32_s3_watch.bin
-        echo "Flash complete!"
+        if [ $? -eq 0 ]; then
+            echo ""
+            echo "========================================"
+            echo "Flash SUCCESSFUL!"
+            echo "========================================"
+        else
+            echo ""
+            echo "========================================"
+            echo "Flash FAILED!"
+            echo "========================================"
+        fi
         SCRIPT
         chmod +x flash_package/flash_linux.sh
+        
+        # Create README
+        cat > flash_package/README.md << 'README'
+        # ESP32-S3 Watch Firmware Flash Package
+        
+        ## Contents
+        - `bootloader.bin` - Flash to 0x0
+        - `partition-table.bin` - Flash to 0x8000
+        - `esp32_s3_watch.bin` - Flash to 0x10000
+        - `flash_windows.bat` - Windows flash script
+        - `flash_linux.sh` - Linux/Mac flash script
+        
+        ## Prerequisites
+        Install esptool: `pip install esptool`
+        
+        ## Flash Instructions
+        **Windows:** Double-click `flash_windows.bat` or run `flash_windows.bat COM8`
+        
+        **Linux/Mac:** `./flash_linux.sh /dev/ttyUSB0`
+        
+        ## Manual Flash
+        ```bash
+        esptool.py --chip esp32s3 -p [PORT] write_flash \
+            --flash_mode dio --flash_freq 80m --flash_size 2MB \
+            0x0 bootloader.bin \
+            0x8000 partition-table.bin \
+            0x10000 esp32_s3_watch.bin
+        ```
+        README
 
-    - name: Upload Firmware Binary
+    - name: Upload Flash Package Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: esp32-s3-watch-firmware
-        path: |
-          build/*.bin
-          build/bootloader/bootloader.bin
-          build/partition_table/partition-table.bin
-          flash_package/
+        name: esp32-s3-watch-flash-package
+        path: flash_package/
         retention-days: 30
 
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          build/*.bin
-          build/bootloader/bootloader.bin
-          build/partition_table/partition-table.bin
+        files: flash_package/*
         generate_release_notes: true
