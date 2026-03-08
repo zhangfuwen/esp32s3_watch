@@ -7,6 +7,11 @@ idf_component_register(
         "input.c"
         "wifi.c"
         "bluetooth.c"
+        # UI Test screens
+        "ui/test_menu.c"
+        "ui/test_display.c"
+        "ui/test_imu.c"
+        "ui/test_battery.c"
         # Emotional Comfort Features
         "comfort/breathing.c"
         "comfort/messages.c"
@@ -14,6 +19,7 @@ idf_component_register(
     INCLUDE_DIRS 
         "../include"
         "comfort"
+        "ui"
     REQUIRES
         driver
         esp_wifi
