@@ -1,0 +1,158 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 版本号标签，如 v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-22.04
+    container:
+      image: espressif/idf:v5.2.1
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Setup build environment
+        shell: bash
+        run: |
+          . /opt/esp/idf/export.sh
+          echo "ESP-IDF version: $(idf.py --version)"
+          
+      - name: Build for ESP32-S3
+        shell: bash
+        run: |
+          . /opt/esp/idf/export.sh
+          idf.py set-target esp32s3
+          idf.py build
+          
+      - name: Create release package
+        shell: bash
+        run: |
+          mkdir -p release
+          
+          # Copy binaries
+          cp build/bootloader/bootloader.bin release/
+          cp build/partition_table/partition-table.bin release/
+          cp build/esp32-watch.bin release/
+          
+          # Create flash script
+          cat > release/flash.sh << 'FLASH'
+#!/bin/bash
+PORT="${1:-/dev/ttyUSB0}"
+echo "🔧 Flashing ESP32-S3 Watch..."
+echo "Port: $PORT"
+esptool.py --chip esp32s3 --port "$PORT" --baud 921600 write_flash \
+    0x0000 bootloader.bin \
+    0x8000 partition-table.bin \
+    0x10000 esp32-watch.bin \
+    --flash_mode dio --flash_freq 80m --flash_size 16MB
+echo "✅ Flash complete!"
+FLASH
+          chmod +x release/flash.sh
+          
+          # Create Windows flash script
+          cat > release/flash.bat << 'FLASH'
+@echo off
+set PORT=%1
+if "%PORT%"=="" set PORT=COM3
+echo Flashing ESP32-S3 Watch to %PORT%...
+esptool.py --chip esp32s3 --port %PORT% --baud 921600 write_flash ^
+    0x0000 bootloader.bin ^
+    0x8000 partition-table.bin ^
+    0x10000 esp32-watch.bin ^
+    --flash_mode dio --flash_freq 80m --flash_size 16MB
+echo Flash complete!
+pause
+FLASH
+          
+          # Create README
+          cat > release/README.md << README
+# ESP32-S3 Watch Firmware Release
+
+**Version:** ${GITHUB_REF#refs/tags/}  
+**Build Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')  
+**Commit:** ${GITHUB_SHA}
+
+## 📦 Contents
+
+- bootloader.bin - ESP32-S3 bootloader (flash at 0x0000)
+- partition-table.bin - Partition table (flash at 0x8000)
+- esp32-watch.bin - Application firmware (flash at 0x10000)
+
+## 🔧 Flash Instructions
+
+### Linux / macOS
+
+\`\`\`bash
+# Automatic (recommended)
+./flash.sh [port]
+
+# Manual with esptool
+esptool.py --chip esp32s3 --port /dev/ttyUSB0 write_flash \\
+    0x0000 bootloader.bin \\
+    0x8000 partition-table.bin \\
+    0x10000 esp32-watch.bin
+\`\`\`
+
+### Windows
+
+\`\`\`batch
+REM Automatic
+flash.bat COM3
+
+REM Manual
+esptool.py --chip esp32s3 --port COM3 write_flash ^
+    0x0000 bootloader.bin ^
+    0x8000 partition-table.bin ^
+    0x10000 esp32-watch.bin
+\`\`\`
+
+## 📊 Monitor Output
+
+\`\`\`bash
+# Linux
+idf.py -p /dev/ttyUSB0 monitor
+
+# macOS
+idf.py -p /dev/tty.usbserial-* monitor
+\`\`\`
+
+## 🐛 Troubleshooting
+
+- **Port not found**: Check device with \`ls /dev/ttyUSB*\` (Linux) or Device Manager (Windows)
+- **Flash failed**: Try holding BOOT button while pressing RESET, then release BOOT
+- **Garbage output**: Check baud rate (should be 115200 for monitor)
+
+## 📝 Changelog
+
+See [GitHub Releases](https://github.com/zhangfuwen/esp32s3_watch/releases) for full changelog.
+README
+
+          # Create zip
+          cd release
+          zip -r ../esp32s3-watch-${GITHUB_REF#refs/tags/}.zip *
+          
+          echo "✅ Release package created"
+          ls -lh ../*.zip
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            esp32s3-watch-*.zip
+            release/bootloader.bin
+            release/partition-table.bin
+            release/esp32-watch.bin
+            release/flash.sh
+            release/flash.bat
+            release/README.md
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

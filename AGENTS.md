@@ -163,17 +163,6 @@ esp32-watch/
 - 音频播放结束后关闭功放
 - IMU 和传感器不使用时关闭电源
 
----
-
-## ✅ 六、OpenCode 交互指南
-
-### 长期会话最佳实践
-1. **使用 ACP 协议**：`opencode acp` 保持持久会话
-2. **保存 Session ID**：使用 `session/load` 继续对话
-3. **避免重复解释**：将上下文存储在 AGENTS.md 或项目文档中
-4. **批量任务**：给出完整任务列表，而非逐个指令
-5. **检查进度**：每 30-60 秒轮询一次，不要连续询问
-
 ### 有用的第三方库
 - **ESP-IDF Components**: https://components.espressif.com/
 - **lvgl/lv_port_esp32**: GUI 库

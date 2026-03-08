@@ -1,161 +1,159 @@
-name: ESP32-S3 Watch Firmware CI
+name: ESP32-S3 Watch Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  IDF_VERSION: v5.2.1
+  BUILD_PROJECT: "esp32-watch"
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: espressif/idf:v5.2.1
-
+    runs-on: ubuntu-22.04
+    container:
+      image: espressif/idf:${{ env.IDF_VERSION }}
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
-    - name: Build ESP32-S3 Watch Firmware
-      run: |
-        . /opt/esp/idf/export.sh
-        idf.py set-target esp32s3
-        idf.py build
+      - name: Build Project
+        shell: bash
+        run: |
+          # Source ESP-IDF environment
+          . /opt/esp/idf/export.sh
+          
+          # Set target to ESP32-S3
+          idf.py set-target esp32s3
+          
+          # Build project
+          idf.py build
+          
+          # Check build output
+          if [ ! -f "build/${BUILD_PROJECT}.bin" ]; then
+            echo "❌ Build failed! Binary not found"
+            exit 1
+          fi
+          
+          echo "✅ Build successful!"
+          echo "Binary size:"
+          ls -lh "build/${BUILD_PROJECT}.bin"
 
-    - name: Generate Flash Package
-      run: |
-        mkdir -p flash_package
-        
-        # Copy binaries with correct names
-        cp build/bootloader/bootloader.bin flash_package/bootloader.bin
-        cp build/partition_table/partition-table.bin flash_package/partition-table.bin
-        cp build/esp32_s3_watch.bin flash_package/esp32_s3_watch.bin
-        
-        # Copy flash arguments
-        cp build/flash_args flash_package/flash_args
-        
-        # Create Windows flash script
-        cat > flash_package/flash_windows.bat << 'SCRIPT'
-        @echo off
-        echo ========================================
-        echo ESP32-S3 Watch Firmware Flash Tool
-        echo ========================================
-        echo.
-        if "%1"=="" (
-            echo Usage: flash_windows.bat [COM_PORT]
-            echo Example: flash_windows.bat COM8
-            echo.
-            set /p COM_PORT="Enter COM port (e.g., COM8): "
-        ) else (
-            set COM_PORT=%1
-        )
-        echo.
-        echo Flashing to %COM_PORT%...
-        echo.
-        esptool.py --chip esp32s3 -p %COM_PORT% ^
-            --before default_reset ^
-            --after hard_reset ^
-            write_flash ^
-            --flash_mode dio ^
-            --flash_freq 80m ^
-            --flash_size 2MB ^
-            0x0 bootloader.bin ^
-            0x8000 partition-table.bin ^
-            0x10000 esp32_s3_watch.bin
-        if %ERRORLEVEL% EQU 0 (
-            echo.
-            echo ========================================
-            echo Flash SUCCESSFUL!
-            echo ========================================
-        ) else (
-            echo.
-            echo ========================================
-            echo Flash FAILED!
-            echo ========================================
-        )
-        pause
-        SCRIPT
-        
-        # Create Linux/Mac flash script
-        cat > flash_package/flash_linux.sh << 'SCRIPT'
-        #!/bin/bash
-        echo "========================================"
-        echo "ESP32-S3 Watch Firmware Flash Tool"
-        echo "========================================"
-        echo ""
-        if [ -z "$1" ]; then
-            echo "Usage: ./flash_linux.sh [PORT]"
-            echo "Example: ./flash_linux.sh /dev/ttyUSB0"
-            echo ""
-            read -p "Enter port (e.g., /dev/ttyUSB0): " PORT
-        else
-            PORT=$1
-        fi
-        echo ""
-        echo "Flashing to $PORT..."
-        echo ""
-        esptool.py --chip esp32s3 -p "$PORT" \
-            --before default_reset \
-            --after hard_reset \
-            write_flash \
-            --flash_mode dio \
-            --flash_freq 80m \
-            --flash_size 2MB \
-            0x0 bootloader.bin \
-            0x8000 partition-table.bin \
-            0x10000 esp32_s3_watch.bin
-        if [ $? -eq 0 ]; then
-            echo ""
-            echo "========================================"
-            echo "Flash SUCCESSFUL!"
-            echo "========================================"
-        else
-            echo ""
-            echo "========================================"
-            echo "Flash FAILED!"
-            echo "========================================"
-        fi
-        SCRIPT
-        chmod +x flash_package/flash_linux.sh
-        
-        # Create README
-        cat > flash_package/README.md << 'README'
-        # ESP32-S3 Watch Firmware Flash Package
-        
-        ## Contents
-        - `bootloader.bin` - Flash to 0x0
-        - `partition-table.bin` - Flash to 0x8000
-        - `esp32_s3_watch.bin` - Flash to 0x10000
-        - `flash_windows.bat` - Windows flash script
-        - `flash_linux.sh` - Linux/Mac flash script
-        
-        ## Prerequisites
-        Install esptool: `pip install esptool`
-        
-        ## Flash Instructions
-        **Windows:** Double-click `flash_windows.bat` or run `flash_windows.bat COM8`
-        
-        **Linux/Mac:** `./flash_linux.sh /dev/ttyUSB0`
-        
-        ## Manual Flash
-        ```bash
-        esptool.py --chip esp32s3 -p [PORT] write_flash \
-            --flash_mode dio --flash_freq 80m --flash_size 2MB \
-            0x0 bootloader.bin \
-            0x8000 partition-table.bin \
-            0x10000 esp32_s3_watch.bin
-        ```
-        README
+      - name: Create Flash Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          
+          # Copy all necessary binaries
+          cp build/bootloader/bootloader.bin dist/
+          cp build/partition_table/partition-table.bin dist/
+          cp build/${BUILD_PROJECT}.bin dist/
+          
+          # Create flash script
+          cat > dist/flash.sh << 'EOF'
+#!/bin/bash
+PORT="${1:-/dev/ttyUSB0}"
+echo "Flashing ESP32-S3 Watch to $PORT..."
+esptool.py --chip esp32s3 --port "$PORT" --baud 921600 write_flash \
+    0x0000 bootloader.bin \
+    0x8000 partition-table.bin \
+    0x10000 ${BUILD_PROJECT}.bin \
+    --flash_mode dio --flash_freq 80m --flash_size 16MB
+echo "Flash complete!"
+EOF
+          chmod +x dist/flash.sh
+          
+          # Create README
+          cat > dist/README.md << EOF
+# ESP32-S3 Watch Firmware
 
-    - name: Upload Flash Package Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: esp32-s3-watch-flash-package
-        path: flash_package/
-        retention-days: 30
+**Build:** GitHub Actions  
+**Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')  
+**Commit:** ${GITHUB_SHA:0:7}
 
-    - name: Create Release (on tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: flash_package/*
-        generate_release_notes: true
+## Files
+
+- bootloader.bin (0x0000)
+- partition-table.bin (0x8000)
+- esp32-watch.bin (0x10000)
+
+## Flash
+
+\`\`\`bash
+./flash.sh [port]
+\`\`\`
+
+Default port: /dev/ttyUSB0 (Linux) or COM3 (Windows)
+EOF
+          
+          # Create zip archive
+          cd dist
+          zip -r ../esp32s3-watch-firmware.zip *
+          cd ..
+          
+          echo "✅ Package created: esp32s3-watch-firmware.zip"
+          ls -lh esp32s3-watch-firmware.zip
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32s3-watch-firmware
+          path: |
+            dist/
+            esp32s3-watch-firmware.zip
+          retention-days: 30
+
+      - name: Upload to Release (if tag)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            esp32s3-watch-firmware.zip
+            dist/bootloader.bin
+            dist/partition-table.bin
+            dist/esp32-watch.bin
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    runs-on: ubuntu-22.04
+    container:
+      image: espressif/idf:${{ env.IDF_VERSION }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Clang-Format Check
+        shell: bash
+        run: |
+          . /opt/esp/idf/export.sh
+          
+          # Check code formatting
+          echo "Checking code formatting..."
+          
+          # Find all C/C++ files and check formatting
+          find main -name "*.c" -o -name "*.h" | while read file; do
+            clang-format --dry-run --Werror "$file" || exit 1
+          done
+          
+          echo "✅ Code formatting OK"
+
+      - name: Check Commit Messages
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            try {
+              execSync('git log --format=%s -n 10 | grep -E "^(feat|fix|docs|style|refactor|test|chore):"', { stdio: 'pipe' });
+              console.log('✅ Commit messages follow conventional format');
+            } catch (error) {
+              console.log('⚠️ Some commit messages may not follow conventional format');
+            }
