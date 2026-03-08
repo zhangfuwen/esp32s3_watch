@@ -46,10 +46,19 @@ esp_err_t watch_face_start(void);
 esp_err_t watch_face_stop(void);
 
 /**
- * @brief Update watch face display
+ * @brief Update watch face display with time
+ * @param datetime Current datetime
  * @return ESP_OK on success
  */
-esp_err_t watch_face_update(void);
+esp_err_t watch_face_update(datetime_t *datetime);
+
+/**
+ * @brief Show notification on watch face
+ * @param title Notification title
+ * @param body Notification body
+ * @return ESP_OK on success
+ */
+esp_err_t watch_face_show_notification(const char *title, const char *body);
 
 /**
  * @brief Set watch face style
