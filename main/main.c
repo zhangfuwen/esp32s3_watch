@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
@@ -24,8 +25,10 @@
 #include "imu_driver.h"
 #include "time_service.h"
 #include "watch_face.h"
+#include "test_menu.h"
 
 static const char *TAG = "WATCH";
+static QueueHandle_t event_queue = NULL;
 
 // Wakeup sources
 #define WAKEUP_BTN0     (1ULL << BOOT_BUTTON_GPIO)
@@ -108,6 +111,11 @@ static esp_err_t init_hardware(void) {
     ESP_ERROR_CHECK(display_driver_init());
     ESP_LOGI(TAG, "Display driver initialized");
     
+    // Initialize test menu
+    ESP_ERROR_CHECK(test_menu_init());
+    test_menu_show_main();
+    ESP_LOGI(TAG, "Test menu initialized");
+    
     // Initialize IMU
     ESP_ERROR_CHECK(imu_driver_init());
     ESP_LOGI(TAG, "IMU driver initialized");
@@ -129,6 +137,61 @@ static esp_err_t init_hardware(void) {
     configure_wakeup_sources();
     
     return ESP_OK;
+}
+
+/**
+ * @brief Event loop task - processes system events
+ */
+static void event_loop_task(void *pvParameters) {
+    event_queue = xQueueCreate(10, sizeof(event_t));
+    if (event_queue == NULL) {
+        ESP_LOGE(TAG, "Failed to create event queue");
+        vTaskDelete(NULL);
+        return;
+    }
+    
+    ESP_LOGI(TAG, "Event loop started");
+    
+    uint32_t battery_check_counter = 0;
+    
+    while (1) {
+        event_t event;
+        BaseType_t received = xQueueReceive(event_queue, &event, pdMS_TO_TICKS(100));
+        
+        if (received == pdTRUE) {
+            switch (event.type) {
+                case EVENT_INPUT_BUTTON_PRESS:
+                    ESP_LOGI(TAG, "Event: Button press");
+                    power_manager_user_activity();
+                    break;
+                case EVENT_INPUT_WRIST_TILT:
+                    ESP_LOGI(TAG, "Event: Wrist tilt");
+                    power_manager_user_activity();
+                    break;
+                case EVENT_POWER_ENTER_SLEEP:
+                    ESP_LOGI(TAG, "Event: Enter sleep");
+                    break;
+                case EVENT_SYSTEM_LOW_BATTERY:
+                    ESP_LOGW(TAG, "Event: Low battery (%lu%%)", event.data_u32);
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        battery_check_counter++;
+        if (battery_check_counter >= 600) {
+            battery_check_counter = 0;
+            uint8_t battery = power_manager_get_battery_level();
+            if (battery < 15) {
+                event_t low_battery_event = {
+                    .type = EVENT_SYSTEM_LOW_BATTERY,
+                    .data_u32 = battery
+                };
+                xQueueSend(event_queue, &low_battery_event, 0);
+            }
+        }
+    }
 }
 
 /**
@@ -178,23 +241,9 @@ void app_main(void) {
     ESP_LOGI(TAG, "=== System Ready ===");
     ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
     
-    // Main loop - event driven, low power
-    while (1) {
-        // Enter light sleep if no activity
-        power_manager_user_activity();  // Reset activity timer
-        
-        // Wait for events (task will be woken by event bus)
-        vTaskDelay(pdMS_TO_TICKS(100));
-        
-        // Check battery level periodically
-        static uint32_t battery_check_counter = 0;
-        if (++battery_check_counter >= 600) {  // Check every minute
-            battery_check_counter = 0;
-            uint8_t battery = power_manager_get_battery_level();
-            if (battery < 15) {
-                event_t event = {.type = EVENT_SYSTEM_LOW_BATTERY, .data_u32 = battery};
-                event_bus_publish(&event);
-            }
-        }
-    }
+    // Create event loop task
+    xTaskCreate(event_loop_task, "event_loop", 4096, NULL, 5, NULL);
+    
+    // Main task done, delete itself
+    vTaskDelete(NULL);
 }
