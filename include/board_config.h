@@ -83,4 +83,26 @@
 // TODO: Add ADC pin for battery voltage monitoring
 // TODO: Add charging status pin
 
+//==================== Battery Fuel Gauge (MAX17048G) ====================
+#define BATTERY_GAUGE_I2C_ADDR      0x36  // MAX17048G default address
+
+//==================== 6-Axis IMU (QMI8658C) ====================
+#define IMU_I2C_ADDR                0x6B  // QMI8658C default address
+#define IMU_INT1_GPIO               GPIO_NUM_41
+#define IMU_INT2_GPIO               GPIO_NUM_42
+
+//==================== Touch Screen (CST816) ====================
+#define TOUCH_I2C_ADDR              0x15  // CST816 default address
+#define TOUCH_RESET_GPIO            GPIO_NUM_7
+#define TOUCH_INT_GPIO              GPIO_NUM_46
+
+//==================== Heart Rate & SpO2 (MAX30102) ====================
+#define HEART_RATE_I2C_ADDR         0x57  // MAX30102 default address
+
+//==================== SD Card (SPI/SDIO) ====================
+#define SD_CARD_MISO_PIN            GPIO_NUM_8
+#define SD_CARD_MOSI_PIN            GPIO_NUM_9
+#define SD_CARD_SCLK_PIN            GPIO_NUM_10
+#define SD_CARD_CS_PIN              GPIO_NUM_NC  // Not used in 1-bit SDIO mode
+
 #endif // _BOARD_CONFIG_H_
