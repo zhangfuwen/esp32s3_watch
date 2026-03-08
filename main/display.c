@@ -120,7 +120,15 @@ void display_clear(void)
 
 void display_fill(uint16_t color)
 {
-    esp_lcd_panel_draw_bitmap(panel, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, &color);
+    // Allocate line buffer on stack (240 * 2 = 480 bytes)
+    uint16_t line_buf[DISPLAY_WIDTH];
+    for (int i = 0; i < DISPLAY_WIDTH; i++) {
+        line_buf[i] = color;
+    }
+    // Draw line by line
+    for (int y = 0; y < DISPLAY_HEIGHT; y++) {
+        esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, line_buf);
+    }
 }
 
 void display_draw_text(int x, int y, const char *text) { ESP_LOGD(TAG, "Text: %s", text); }

@@ -2,9 +2,9 @@
  * ESP32-S3 Watch - Main Entry Point
  * 
  * @file main.c
- * @brief Main application entry point for ESP32-S3 smart watch
- * @version 0.1
- * @date 2026-03-06
+ * @brief Main application entry point with event-driven architecture
+ * @version 0.2
+ * @date 2026-03-08
  */
 
 #include <stdio.h>
@@ -12,85 +12,189 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_sleep.h"
 #include "nvs_flash.h"
+#include "driver/gpio.h"
+#include "esp_pm.h"
 
-#include "display.h"
+#include "board_config.h"
+#include "event_bus.h"
+#include "power_manager.h"
+#include "display_driver.h"
+#include "imu_driver.h"
+#include "time_service.h"
 #include "watch_face.h"
-#include "input.h"
-#include "wifi.h"
-#include "bluetooth.h"
 
 static const char *TAG = "WATCH";
 
-/**
- * @brief Main application entry point
- */
-void app_main(void)
-{
-    ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 0.1.0");
-    ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
+// Wakeup sources
+#define WAKEUP_BTN0     (1ULL << BOOT_BUTTON_GPIO)
+#define WAKEUP_BTN_PWR  (1ULL << POWER_BUTTON_GPIO)
+#define WAKEUP_IMU      (1ULL << 41)  // IMU INT1
 
-    // Initialize NVS (Non-Volatile Storage)
-    esp_err_t ret = nvs_flash_init();
+/**
+ * @brief Event handler for system events
+ */
+static void system_event_handler(const event_t *event) {
+    switch (event->type) {
+        case EVENT_INPUT_BUTTON_PRESS:
+            ESP_LOGI(TAG, "Button pressed");
+            power_manager_user_activity();
+            break;
+            
+        case EVENT_INPUT_WRIST_TILT:
+            ESP_LOGI(TAG, "Wrist raised");
+            power_manager_user_activity();
+            break;
+            
+        case EVENT_POWER_ENTER_SLEEP:
+            ESP_LOGI(TAG, "Entering sleep mode");
+            break;
+            
+        case EVENT_SYSTEM_LOW_BATTERY:
+            ESP_LOGW(TAG, "Low battery warning!");
+            break;
+            
+        default:
+            break;
+    }
+}
+
+/**
+ * @brief Configure wakeup sources
+ */
+static void configure_wakeup_sources(void) {
+    // Enable ext1 wakeup for buttons
+    esp_sleep_enable_ext1_wakeup(WAKEUP_BTN0 | WAKEUP_BTN_PWR, ESP_EXT1_WAKEUP_ANY_HIGH);
+    
+    // Enable IMU as wakeup source (via INT1)
+    gpio_wakeup_enable(IMU_INT1_GPIO, GPIO_INTR_HIGH_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+    
+    ESP_LOGI(TAG, "Wakeup sources configured: BOOT, PWR, IMU");
+}
+
+/**
+ * @brief Initialize hardware peripherals
+ */
+static esp_err_t init_hardware(void) {
+    esp_err_t ret;
+    
+    // Initialize NVS
+    ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_LOGW(TAG, "NVS partition was truncated, erasing...");
+        ESP_LOGW(TAG, "NVS partition truncated, erasing...");
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
     ESP_LOGI(TAG, "NVS initialized");
-
+    
+    // Initialize event bus
+    ESP_ERROR_CHECK(event_bus_init());
+    ESP_LOGI(TAG, "Event bus initialized");
+    
+    // Subscribe to system events
+    event_bus_subscribe(EVENT_INPUT_BUTTON_PRESS, system_event_handler);
+    event_bus_subscribe(EVENT_INPUT_WRIST_TILT, system_event_handler);
+    event_bus_subscribe(EVENT_POWER_ENTER_SLEEP, system_event_handler);
+    event_bus_subscribe(EVENT_SYSTEM_LOW_BATTERY, system_event_handler);
+    
+    // Initialize power manager
+    ESP_ERROR_CHECK(power_manager_init());
+    ESP_LOGI(TAG, "Power manager initialized");
+    
     // Initialize display
-    ESP_LOGI(TAG, "Calling display_init()...");
-    display_init();
-    ESP_LOGI(TAG, "display_init() returned - starting color cycle test!");
+    ESP_ERROR_CHECK(display_driver_init());
+    ESP_LOGI(TAG, "Display driver initialized");
     
-    // Color cycle test loop - changes color every 2 seconds
-    // This helps diagnose display issues even if you connect late
-    uint16_t test_colors[] = {
-        0xF800,  // Red
-        0x07E0,  // Green
-        0x001F,  // Blue
-        0xFFFF,  // White
-        0x0000,  // Black
+    // Initialize IMU
+    ESP_ERROR_CHECK(imu_driver_init());
+    ESP_LOGI(TAG, "IMU driver initialized");
+    
+    // Initialize time service
+    time_config_t time_config = {
+        .enable_ntp = true,
+        .enable_ble_time = true,
+        .enable_ble_notifications = true,
+        .ntp_server = "pool.ntp.org",
+        .timezone_hours = 8,  // CST (China Standard Time)
+        .timezone_minutes = 0,
+        .is_dst = false
     };
-    const char* color_names[] = {"RED", "GREEN", "BLUE", "WHITE", "BLACK"};
+    ESP_ERROR_CHECK(time_service_init(&time_config));
+    ESP_LOGI(TAG, "Time service initialized");
     
-    ESP_LOGI(TAG, "Starting color cycle test loop...");
+    // Configure wakeup sources
+    configure_wakeup_sources();
     
-    // Initialize input system (buttons/touch)
-    ESP_LOGI(TAG, "Initializing input...");
-    input_init();
+    return ESP_OK;
+}
+
+/**
+ * @brief Main application entry point
+ */
+void app_main(void) {
+    ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
+    ESP_LOGI(TAG, "Version: 0.2.0 (Event-Driven)");
+    ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
-    // Initialize WiFi
-    ESP_LOGI(TAG, "Initializing WiFi...");
-    wifi_init();
+    // Check wakeup reason
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+    switch (wakeup_reason) {
+        case ESP_SLEEP_WAKEUP_EXT1:
+            ESP_LOGI(TAG, "Wakeup by EXT1 (button)");
+            break;
+        case ESP_SLEEP_WAKEUP_GPIO:
+            ESP_LOGI(TAG, "Wakeup by GPIO (IMU)");
+            break;
+        case ESP_SLEEP_WAKEUP_TIMER:
+            ESP_LOGI(TAG, "Wakeup by timer");
+            break;
+        default:
+            ESP_LOGI(TAG, "Cold start (no wakeup source)");
+            break;
+    }
     
-    // Initialize Bluetooth
-    ESP_LOGI(TAG, "Initializing Bluetooth...");
-    bluetooth_init();
+    // Initialize hardware
+    ESP_ERROR_CHECK(init_hardware());
     
-    // Start watch face task
-    ESP_LOGI(TAG, "Starting watch face...");
-    watch_face_start();
+    // Initialize watch face
+    watch_face_config_t wf_config = {
+        .style = WATCH_FACE_DIGITAL,
+        .show_seconds = true,
+        .show_date = true,
+        .show_battery = true,
+        .show_steps = false,
+        .brightness = 80
+    };
+    ESP_ERROR_CHECK(watch_face_init(&wf_config));
+    ESP_ERROR_CHECK(watch_face_start());
+    ESP_LOGI(TAG, "Watch face started");
+    
+    // Enable auto NTP sync
+    time_service_enable_auto_sync(true);
     
     ESP_LOGI(TAG, "=== System Ready ===");
+    ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
     
-    // Color cycle test loop - slower for debugging
-    int color_index = 0;
+    // Main loop - event driven, low power
     while (1) {
-        // Display test color
-        display_fill(test_colors[color_index]);
-        ESP_LOGI(TAG, "========================================");
-        ESP_LOGI(TAG, "COLOR TEST: %s (0x%04X) - Screen should be this color!", color_names[color_index], test_colors[color_index]);
-        ESP_LOGI(TAG, "Heap: %lu bytes", esp_get_free_heap_size());
-        ESP_LOGI(TAG, "========================================");
+        // Enter light sleep if no activity
+        power_manager_user_activity();  // Reset activity timer
         
-        // Wait 3 seconds (slower for debugging)
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        // Wait for events (task will be woken by event bus)
+        vTaskDelay(pdMS_TO_TICKS(100));
         
-        // Next color
-        color_index = (color_index + 1) % 5;
+        // Check battery level periodically
+        static uint32_t battery_check_counter = 0;
+        if (++battery_check_counter >= 600) {  // Check every minute
+            battery_check_counter = 0;
+            uint8_t battery = power_manager_get_battery_level();
+            if (battery < 15) {
+                event_t event = {.type = EVENT_SYSTEM_LOW_BATTERY, .data_u32 = battery};
+                event_bus_publish(&event);
+            }
+        }
     }
 }
