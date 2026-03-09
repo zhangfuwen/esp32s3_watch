@@ -19,6 +19,9 @@ static uint16_t s_height = ST7789_HEIGHT;
 static bool s_inverted = false;
 static bool m_swap_xy = false;
 
+static uint8_t *s_spi_buf = NULL;
+static size_t s_spi_buf_size = 0;
+
 static gpio_num_t s_pin_cs = GPIO_NUM_12;
 static gpio_num_t s_pin_dc = GPIO_NUM_11;
 static gpio_num_t s_pin_rst = GPIO_NUM_NC;
@@ -287,6 +290,16 @@ esp_err_t display_driver_init(const display_driver_config_t *config)
     display_driver_write_command(ST7789_DISPON);
     vTaskDelay(pdMS_TO_TICKS(100));
 
+    s_spi_buf_size = s_width * s_height * 2;
+    s_spi_buf = heap_caps_malloc(s_spi_buf_size, MALLOC_CAP_DMA);
+    if (!s_spi_buf) {
+        ESP_LOGW(TAG, "Failed to allocate DMA buffer, using malloc");
+        s_spi_buf = malloc(s_spi_buf_size);
+    }
+    if (s_spi_buf) {
+        ESP_LOGI(TAG, "Allocated SPI buffer: %zu bytes", s_spi_buf_size);
+    }
+
     s_initialized = true;
     ESP_LOGI(TAG, "Display initialized: %dx%d", s_width, s_height);
 
@@ -297,6 +310,12 @@ esp_err_t display_driver_deinit(void)
 {
     if (!s_initialized) {
         return ESP_OK;
+    }
+
+    if (s_spi_buf) {
+        free(s_spi_buf);
+        s_spi_buf = NULL;
+        s_spi_buf_size = 0;
     }
 
     if (s_spi_handle) {
@@ -407,17 +426,25 @@ esp_err_t display_driver_fill_rect(int16_t x, int16_t y, int16_t width, int16_t 
     display_driver_set_window(&window);
 
     uint32_t pixel_count = (uint32_t)width * height;
-    uint8_t color_buf[2] = { color >> 8, color & 0xFF };
+    size_t buf_size = pixel_count * 2;
+
+    if (!s_spi_buf || buf_size > s_spi_buf_size) {
+        ESP_LOGE(TAG, "Buffer too small: %zu vs %zu", buf_size, s_spi_buf_size);
+        return ESP_ERR_NO_MEM;
+    }
+
+    for (uint32_t i = 0; i < pixel_count; i++) {
+        s_spi_buf[i * 2] = color >> 8;
+        s_spi_buf[i * 2 + 1] = color & 0xFF;
+    }
 
     gpio_set_level(s_pin_dc, 1);
 
-    for (uint32_t i = 0; i < pixel_count; i++) {
-        spi_transaction_t trans = {
-            .tx_buffer = color_buf,
-            .length = 16,
-        };
-        spi_device_transmit(s_spi_handle, &trans);
-    }
+    spi_transaction_t trans = {
+        .tx_buffer = s_spi_buf,
+        .length = buf_size * 8,
+    };
+    spi_device_transmit(s_spi_handle, &trans);
 
     return ESP_OK;
 }
