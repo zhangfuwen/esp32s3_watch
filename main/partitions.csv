@@ -1,0 +1,8 @@
+# ESP32-S3 Watch Partition Table
+# Name,   Type, SubType, Offset,  Size, Flags
+# Note: if you have increased the bootloader size, make sure to update the offsets to 0x10000
+
+nvs,      data, nvs,     0x9000,  0x6000,
+phy_init, data, phy,     0xf000,  0x1000,
+factory,  app,  factory, 0x10000, 0x1000000,
+storage,  data, spiffs,  0x1010000, 0x500000,
