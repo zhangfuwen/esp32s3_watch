@@ -6,7 +6,7 @@
 #include "test_menu.h"
 #include "imu_driver.h"
 #include "esp_log.h"
-#include <lvgl/lvgl.h>
+#include "lvgl.h"
 
 static const char *TAG = "TEST_IMU";
 
@@ -27,7 +27,7 @@ void test_imu_create(lv_obj_t *parent) {
     lv_obj_t *acc_title = lv_label_create(screen);
     lv_label_set_text(acc_title, "Accelerometer (g)");
     lv_obj_set_style_text_color(acc_title, lv_color_hex(0x00FF00), 0);
-    lv_obj_set_style_margin_bottom(acc_title, 5, 0);
+    lv_obj_set_style_pad_bottom(acc_title, 5, 0);
     
     acc_x_label = lv_label_create(screen);
     acc_y_label = lv_label_create(screen);
@@ -42,8 +42,8 @@ void test_imu_create(lv_obj_t *parent) {
     lv_obj_t *gyr_title = lv_label_create(screen);
     lv_label_set_text(gyr_title, "Gyroscope (dps)");
     lv_obj_set_style_text_color(gyr_title, lv_color_hex(0x00FFFF), 0);
-    lv_obj_set_style_margin_top(gyr_title, 10, 0);
-    lv_obj_set_style_margin_bottom(gyr_title, 5, 0);
+    lv_obj_set_style_pad_top(gyr_title, 10, 0);
+    lv_obj_set_style_pad_bottom(gyr_title, 5, 0);
     
     gyr_x_label = lv_label_create(screen);
     gyr_y_label = lv_label_create(screen);
@@ -58,12 +58,12 @@ void test_imu_create(lv_obj_t *parent) {
     temp_label = lv_label_create(screen);
     lv_label_set_text(temp_label, "Temp: --");
     lv_obj_set_style_text_color(temp_label, lv_color_hex(0xFFFF00), 0);
-    lv_obj_set_style_margin_top(temp_label, 10, 0);
+    lv_obj_set_style_pad_top(temp_label, 10, 0);
     
     status_label = lv_label_create(screen);
     lv_label_set_text(status_label, "Status: Initializing...");
     lv_obj_set_style_text_color(status_label, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_set_style_margin_top(status_label, 10, 0);
+    lv_obj_set_style_pad_top(status_label, 10, 0);
     
     if (imu_driver_is_available()) {
         lv_label_set_text(status_label, "Status: QMI8658C OK");

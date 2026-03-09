@@ -75,7 +75,7 @@ void test_menu_init(void) {
     lv_label_set_text(title, "ESP32-S3 Watch\nTest Menu");
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_margin_bottom(title, 20, 0);
+    lv_obj_set_style_pad_bottom(title, 20, 0);
     
     // Menu items
     menu_item_t items[] = {
@@ -91,8 +91,8 @@ void test_menu_init(void) {
     for (size_t i = 0; i < sizeof(items)/sizeof(items[0]); i++) {
         lv_obj_t *btn = lv_btn_create(main_menu);
         lv_obj_set_width(btn, 200);
-        lv_obj_set_style_margin_top(btn, 5, 0);
-        lv_obj_set_style_margin_bottom(btn, 5, 0);
+        lv_obj_set_style_pad_top(btn, 5, 0);
+        lv_obj_set_style_pad_bottom(btn, 5, 0);
         lv_obj_add_event_cb(btn, menu_item_click_cb, LV_EVENT_CLICKED, (void *)items[i].name);
         
         lv_obj_t *label = lv_label_create(btn);

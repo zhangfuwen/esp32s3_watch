@@ -6,7 +6,7 @@
 #include "test_menu.h"
 #include "power_manager.h"
 #include "esp_log.h"
-#include <lvgl/lvgl.h>
+#include "lvgl.h"
 
 static const char *TAG = "TEST_BATTERY";
 
@@ -35,17 +35,17 @@ void test_battery_create(lv_obj_t *parent) {
     charging_label = lv_label_create(screen);
     lv_label_set_text(charging_label, "Charging: --");
     lv_obj_set_style_text_color(charging_label, lv_color_hex(0xFFFF00), 0);
-    lv_obj_set_style_margin_top(charging_label, 10, 0);
+    lv_obj_set_style_pad_top(charging_label, 10, 0);
     
     voltage_label = lv_label_create(screen);
     lv_label_set_text(voltage_label, "Voltage: --.-- V");
     lv_obj_set_style_text_color(voltage_label, lv_color_hex(0x00FFFF), 0);
-    lv_obj_set_style_margin_top(voltage_label, 5, 0);
+    lv_obj_set_style_pad_top(voltage_label, 5, 0);
     
     status_label = lv_label_create(screen);
     lv_label_set_text(status_label, "Status: Initializing...");
     lv_obj_set_style_text_color(status_label, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_set_style_margin_top(status_label, 10, 0);
+    lv_obj_set_style_pad_top(status_label, 10, 0);
     
     test_battery_update();
 }

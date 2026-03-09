@@ -5,7 +5,7 @@
 
 #include "test_menu.h"
 #include "esp_log.h"
-#include <lvgl/lvgl.h>
+#include "lvgl.h"
 
 static const char *TAG = "TEST_DISPLAY";
 
@@ -53,12 +53,12 @@ void test_display_create(lv_obj_t *parent) {
     lv_obj_t *info_label = lv_label_create(screen);
     lv_label_set_text(info_label, "Color Test Pattern");
     lv_obj_set_style_text_color(info_label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_margin_bottom(info_label, 10, 0);
+    lv_obj_set_style_pad_bottom(info_label, 10, 0);
     
     update_color_blocks(screen);
     
     lv_obj_t *desc_label = lv_label_create(screen);
     lv_label_set_text(desc_label, "Screen: 240x285\nColors: 262K");
     lv_obj_set_style_text_color(desc_label, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_set_style_margin_top(desc_label, 10, 0);
+    lv_obj_set_style_pad_top(desc_label, 10, 0);
 }

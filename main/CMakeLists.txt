@@ -12,9 +12,20 @@ idf_component_register(
         "ui/test_display.c"
         "ui/test_imu.c"
         "ui/test_battery.c"
+        # Core modules
+        "core/event_bus.c"
+        "core/power_manager.c"
+        # Drivers
+        "drivers/display_driver.c"
+        "drivers/imu_driver.c"
+        # Services
+        "services/time_service.c"
     INCLUDE_DIRS 
         "../include"
         "ui"
+        "core"
+        "drivers"
+        "services"
     REQUIRES
         driver
         esp_wifi
