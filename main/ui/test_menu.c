@@ -13,13 +13,13 @@ static const char *TAG = "TEST_MENU";
 static lv_obj_t *main_menu = NULL;
 static lv_obj_t *current_screen = NULL;
 
-// Test screen functions (to be implemented)
+// Test screen functions
 extern void test_display_create(lv_obj_t *parent);
 extern void test_imu_create(lv_obj_t *parent);
 extern void test_battery_create(lv_obj_t *parent);
-extern void test_touch_create(lv_obj_t *parent);
-extern void test_audio_create(lv_obj_t *parent);
-extern void test_ble_create(lv_obj_t *parent);
+// TODO: extern void test_touch_create(lv_obj_t *parent);
+// TODO: extern void test_audio_create(lv_obj_t *parent);
+// TODO: extern void test_ble_create(lv_obj_t *parent);
 
 // Menu items
 typedef struct {
@@ -44,13 +44,8 @@ static void menu_item_click_cb(lv_event_t *e) {
         test_imu_create(current_screen);
     } else if (strcmp(name, "Battery") == 0) {
         test_battery_create(current_screen);
-    } else if (strcmp(name, "Touch") == 0) {
-        test_touch_create(current_screen);
-    } else if (strcmp(name, "Audio") == 0) {
-        test_audio_create(current_screen);
-    } else if (strcmp(name, "BLE") == 0) {
-        test_ble_create(current_screen);
     }
+    // TODO: Touch, Audio, BLE tests
 }
 
 static void back_button_cb(lv_event_t *e) {
@@ -79,12 +74,9 @@ void test_menu_init(void) {
     
     // Menu items
     menu_item_t items[] = {
-        {"Display", "🖥️", menu_item_click_cb},
-        {"Touch", "👆", menu_item_click_cb},
-        {"IMU", "📟", menu_item_click_cb},
-        {"Audio", "🔊", menu_item_click_cb},
-        {"Battery", "🔋", menu_item_click_cb},
-        {"BLE", "📶", menu_item_click_cb},
+        {"Display", "Display", menu_item_click_cb},
+        {"IMU", "IMU", menu_item_click_cb},
+        {"Battery", "Battery", menu_item_click_cb},
     };
     
     // Create menu buttons
