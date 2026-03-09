@@ -11,7 +11,7 @@
 #include "esp_err.h"
 #include "lvgl.h"
 
-esp_err_t test_menu_init(void);
+void test_menu_init(void);
 
 esp_err_t test_menu_start(void);
 

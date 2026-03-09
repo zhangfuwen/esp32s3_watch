@@ -24,7 +24,7 @@ void test_battery_create(lv_obj_t *parent) {
     battery_percent_label = lv_label_create(screen);
     lv_label_set_text(battery_percent_label, "---%");
     lv_obj_set_style_text_color(battery_percent_label, lv_color_hex(0x00FF00), 0);
-    lv_obj_set_style_text_font(battery_percent_label, &lv_font_montserrat_48, 0);
+    // Use default font (lv_font_montserrat_48 doesn't exist in LVGL 8.4)
     
     battery_bar = lv_bar_create(screen);
     lv_obj_set_size(battery_bar, 200, 30);
