@@ -151,26 +151,75 @@ esp32-watch/
 ### 2. 编码规范
 
 #### 面向对象 C 编程
-- **使用结构体封装对象状态**：每个驱动/模块使用结构体保存私有状态
-  ```c
-  typedef struct {
-      i2c_port_t i2c_port;
-      uint8_t i2c_addr;
-      bool initialized;
-      // ... 其他私有成员
-  } xxx_driver_t;
-  ```
-- **使用单例模式**：每个驱动模块一个全局实例
-  ```c
-  static xxx_driver_t s_driver = {0};
-  ```
-- **方法命名规范**：`模块名_方法名 (对象，参数...)`
-  ```c
-  esp_err_t display_driver_init(display_driver_t *driver, const config_t *config);
-  esp_err_t display_driver_write_command(display_driver_t *driver, uint8_t cmd);
-  ```
-- **封装私有方法**：使用 `static` 限制访问范围
-- **提供构造函数/析构函数**：`xxx_init()` 和 `xxx_deinit()`
+
+**使用结构体封装对象状态**：每个驱动/模块使用结构体保存私有状态
+```c
+typedef struct {
+    i2c_port_t i2c_port;
+    uint8_t i2c_addr;
+    bool initialized;
+    // ... 其他私有成员
+} xxx_driver_t;
+```
+
+**使用单例模式**：每个驱动模块一个全局实例
+```c
+static xxx_driver_t s_driver = {0};
+```
+
+**函数指针封装（虚函数表模式）**：将方法作为函数指针封装在结构体中
+```c
+// 定义驱动接口（类似 C++ 的抽象基类）
+typedef struct {
+    esp_err_t (*init)(void *self, const config_t *config);
+    esp_err_t (*deinit)(void *self);
+    esp_err_t (*read)(void *self, uint8_t reg, uint8_t *buf, size_t len);
+    esp_err_t (*write)(void *self, uint8_t reg, const uint8_t *buf, size_t len);
+} xxx_driver_iface_t;
+
+// 具体实现结构体包含接口和私有数据
+typedef struct {
+    const xxx_driver_iface_t *iface;  // 虚函数表
+    i2c_port_t i2c_port;
+    uint8_t i2c_addr;
+    bool initialized;
+} xxx_driver_impl_t;
+
+// 实现函数
+static esp_err_t xxx_init_impl(void *self, const config_t *config) {
+    xxx_driver_impl_t *driver = (xxx_driver_impl_t *)self;
+    // 实现代码
+}
+
+// 虚函数表实例
+static const xxx_driver_iface_t xxx_driver_vtable = {
+    .init = xxx_init_impl,
+    .deinit = xxx_deinit_impl,
+    .read = xxx_read_impl,
+    .write = xxx_write_impl,
+};
+
+// 全局单例
+static xxx_driver_impl_t s_driver = {
+    .iface = &xxx_driver_vtable,
+    .i2c_port = I2C_NUM_0,
+    .i2c_addr = 0x3C,
+};
+
+// 使用方式（类似多态调用）
+s_driver.iface->init(&s_driver, &config);
+s_driver.iface->write(&s_driver, reg, data, len);
+```
+
+**方法命名规范**：`模块名_方法名 (对象，参数...)`
+```c
+esp_err_t display_driver_init(display_driver_t *driver, const config_t *config);
+esp_err_t display_driver_write_command(display_driver_t *driver, uint8_t cmd);
+```
+
+**封装私有方法**：使用 `static` 限制访问范围
+
+**提供构造函数/析构函数**：`xxx_init()` 和 `xxx_deinit()`
 
 #### 日志规范
 - **必须打印足够的日志**：每个关键步骤都要打印日志
