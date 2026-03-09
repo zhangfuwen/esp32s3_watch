@@ -180,7 +180,7 @@ esp_err_t power_manager_enter_deep_sleep(uint32_t sleep_ms)
     event_bus_publish(&sleep_event);
 
     // Disable all wakeup sources first
-    esp_sleep_disable_all_wakeup_sources();
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
     // Configure wakeup sources for deep sleep
     if (s_enabled_wakeup_sources & WAKEUP_SOURCE_TIMER) {

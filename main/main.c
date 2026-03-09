@@ -15,6 +15,7 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
+#include "driver/spi_master.h"
 
 #include "board_config.h"
 #include "event_bus.h"
