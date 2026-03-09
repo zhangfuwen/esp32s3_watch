@@ -1,4 +1,4 @@
-/* * Data converted from /home/admin/Code/esp32-s3-watch/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from /Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 .section .rodata.embedded

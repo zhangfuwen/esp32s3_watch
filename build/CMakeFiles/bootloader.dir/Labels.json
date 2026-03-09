@@ -2,34 +2,34 @@
 	"sources" : 
 	[
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/CMakeFiles/bootloader"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/CMakeFiles/bootloader"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/CMakeFiles/bootloader.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/CMakeFiles/bootloader.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/CMakeFiles/bootloader-complete.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/CMakeFiles/bootloader-complete.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
 		},
 		{
-			"file" : "/home/admin/Code/esp32-s3-watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+			"file" : "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
 		}
 	],
 	"target" : 
