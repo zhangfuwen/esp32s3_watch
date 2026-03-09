@@ -12,13 +12,8 @@ idf_component_register(
         "ui/test_display.c"
         "ui/test_imu.c"
         "ui/test_battery.c"
-        # Emotional Comfort Features
-        "comfort/breathing.c"
-        "comfort/messages.c"
-        "comfort/emergency.c"
     INCLUDE_DIRS 
         "../include"
-        "comfort"
         "ui"
     REQUIRES
         driver
