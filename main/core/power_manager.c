@@ -141,7 +141,7 @@ esp_err_t power_manager_register_wakeup_source(uint32_t wakeup_sources)
     ESP_LOGI(TAG, "Registered wakeup sources: 0x%08" PRIx32, wakeup_sources);
 
     // Configure ESP-IDF sleep wakeup sources
-    esp_sleep_disable_all_wakeup_sources();
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
     if (wakeup_sources & WAKEUP_SOURCE_TIMER) {
         esp_sleep_enable_timer_wakeup(60000000); // 1 minute default
