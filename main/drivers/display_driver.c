@@ -188,11 +188,79 @@ esp_err_t display_driver_init(const display_driver_config_t *config)
 
     display_driver_reset();
 
+    display_driver_write_command(ST7789_SWRESET);
+    vTaskDelay(pdMS_TO_TICKS(150));
+
     display_driver_write_command(ST7789_SLPOUT);
     vTaskDelay(pdMS_TO_TICKS(120));
 
+    display_driver_write_command(0xB2);
+    display_driver_write_data(0x0C);
+    display_driver_write_data(0x0C);
+    display_driver_write_data(0x00);
+    display_driver_write_data(0x33);
+    display_driver_write_data(0x33);
+    display_driver_write_command(0xB7);
+    display_driver_write_data(0x35);
+
     display_driver_write_command(ST7789_COLMOD);
     display_driver_write_data(ST7789_COLOR_MODE_16BIT);
+
+    display_driver_write_command(0xBB);
+    display_driver_write_data(0x1F);
+
+    display_driver_write_command(0xC0);
+    display_driver_write_data(0x2C);
+
+    display_driver_write_command(0xC2);
+    display_driver_write_data(0x01);
+
+    display_driver_write_command(0xC3);
+    display_driver_write_data(0x11);
+
+    display_driver_write_command(0xC4);
+    display_driver_write_data(0x20);
+
+    display_driver_write_command(0xC6);
+    display_driver_write_data(0x0F);
+
+    display_driver_write_command(0xD0);
+    display_driver_write_data(0xA4);
+    display_driver_write_data(0xA1);
+
+    display_driver_write_command(0xE0);
+    display_driver_write_data(0xD0);
+    display_driver_write_data(0x04);
+    display_driver_write_data(0x0D);
+    display_driver_write_data(0x11);
+    display_driver_write_data(0x13);
+    display_driver_write_data(0x2B);
+    display_driver_write_data(0x3F);
+    display_driver_write_data(0x54);
+    display_driver_write_data(0x4C);
+    display_driver_write_data(0x18);
+    display_driver_write_data(0x0D);
+    display_driver_write_data(0x0B);
+    display_driver_write_data(0x1F);
+    display_driver_write_data(0x23);
+
+    display_driver_write_command(0xE1);
+    display_driver_write_data(0xD0);
+    display_driver_write_data(0x04);
+    display_driver_write_data(0x0C);
+    display_driver_write_data(0x11);
+    display_driver_write_data(0x13);
+    display_driver_write_data(0x2C);
+    display_driver_write_data(0x3F);
+    display_driver_write_data(0x44);
+    display_driver_write_data(0x51);
+    display_driver_write_data(0x2F);
+    display_driver_write_data(0x1F);
+    display_driver_write_data(0x1F);
+    display_driver_write_data(0x20);
+    display_driver_write_data(0x23);
+
+    display_driver_write_command(0x21);
 
     display_driver_set_rotation_internal();
 
@@ -206,6 +274,10 @@ esp_err_t display_driver_init(const display_driver_config_t *config)
     display_driver_write_data16(s_width);
 
     display_driver_write_command(ST7789_RASET);
+    display_driver_write_data16(0);
+    display_driver_write_data16(s_height);
+
+    display_driver_write_command(0x37);
     display_driver_write_data16(0);
     display_driver_write_data16(s_height);
 
