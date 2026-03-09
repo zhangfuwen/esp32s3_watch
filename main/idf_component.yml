@@ -4,31 +4,18 @@ dependencies:
   idf:
     version: ">=5.2.0"
 
-  ## LVGL GUI library (ESP-IDF built-in)
-  lvgl:
-    version: ">=8.0.0"
+  ## LVGL GUI library (ESP-IDF built-in since v5.0)
+  lvgl/lvgl:
+    version: "^8.4.0"
+    public: true
 
-  ## Other required components
-  es8311:
-    version: ">=1.2.0"
-
-  max30102:
-    version: ">=1.0.0"
-
-  qmi8658c:
-    version: ">=1.0.0"
-
-  cst816:
-    version: ">=1.0.0"
-
-  max17048:
-    version: ">=1.0.0"
-
-  st7789:
-    version: ">=1.0.0"
-
-  fatfs:
-    version: ">=1.0.0"
-
-  nvs_flash:
-    version: ">=1.0.0"
+  ## ESP-IDF built-in components (no version needed)
+  ## - fatfs
+  ## - nvs_flash
+  ## - esp_lcd
+  ## - esp_timer
+  ## - driver (I2C, SPI, GPIO)
+  ## - esp_wifi
+  ## - bt (Bluetooth)
+  ## - freertos
+  ## - esp_common
