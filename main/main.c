@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -16,14 +17,65 @@
 #include "nvs_flash.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "driver/spi_master.h"
+
+#include "lvgl.h"
+#include "esp_lcd_panel_ops.h"
 
 #include "board_config.h"
 #include "event_bus.h"
 #include "power_manager.h"
 #include "display_driver.h"
+#include "display.h"
 #include "test_menu.h"
 
 static const char *TAG = "WATCH";
+
+static uint8_t lcd_buffer[DISPLAY_WIDTH * DISPLAY_HEIGHT * 2] __attribute__((aligned(4)));
+
+static void lvgl_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
+{
+    int32_t x1 = area->x1;
+    int32_t y1 = area->y1;
+    int32_t x2 = area->x2 + 1;
+    int32_t y2 = area->y2 + 1;
+
+    for (int y = y1; y < y2; y++) {
+        for (int x = x1; x < x2; x++) {
+            display_draw_pixel(x, y, color_p->full);
+            color_p++;
+        }
+    }
+
+    lv_disp_flush_ready(disp_drv);
+}
+
+static void lvgl_wait_cb(lv_disp_drv_t *disp_drv)
+{
+}
+
+static esp_err_t init_lvgl_display(void)
+{
+    ESP_LOGI(TAG, "Initializing LVGL display...");
+
+    static lv_disp_drv_t disp_drv;
+    lv_disp_drv_init(&disp_drv);
+
+    disp_drv.hor_res = DISPLAY_WIDTH;
+    disp_drv.ver_res = DISPLAY_HEIGHT;
+    disp_drv.flush_cb = lvgl_flush_cb;
+    disp_drv.wait_cb = lvgl_wait_cb;
+    disp_drv.draw_buf = NULL;
+
+    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
+    if (disp == NULL) {
+        ESP_LOGE(TAG, "Failed to register LVGL display driver");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "LVGL display registered: %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    return ESP_OK;
+}
 
 /**
  * @brief Event handler for system events
@@ -90,6 +142,16 @@ static esp_err_t init_hardware(void) {
     ESP_ERROR_CHECK(display_driver_init(&disp_config));
     ESP_LOGI(TAG, "Display driver initialized");
     
+    // Initialize LVGL
+    ESP_LOGI(TAG, "Initializing LVGL...");
+    lv_init();
+    ESP_LOGI(TAG, "LVGL initialized");
+    
+    // Initialize LVGL display driver
+    if (init_lvgl_display() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize LVGL display");
+    }
+    
     // Initialize test menu
     test_menu_init();
     ESP_LOGI(TAG, "Test menu initialized");
@@ -109,7 +171,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(init_hardware());
     
     ESP_LOGI(TAG, "=== System Ready ===");
-    ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
+    ESP_LOGI(TAG, "Free heap: %u bytes", esp_get_free_heap_size());
     
     // Main loop
     while (1) {

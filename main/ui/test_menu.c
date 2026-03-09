@@ -68,6 +68,22 @@ static void back_button_cb(lv_event_t *e) {
 void test_menu_init(void) {
     ESP_LOGI(TAG, "Initializing test menu...");
     
+    // Check if LVGL is initialized
+    if (!lv_is_initialized()) {
+        ESP_LOGE(TAG, "LVGL not initialized! Call lv_init() first!");
+        return;
+    }
+    ESP_LOGI(TAG, "LVGL is initialized");
+    
+    // Check if display driver is registered
+    lv_disp_t *disp = lv_disp_get_default();
+    if (disp == NULL) {
+        ESP_LOGE(TAG, "No LVGL display driver registered! lv_disp_get_default() returned NULL");
+        ESP_LOGE(TAG, "test_menu requires LVGL display driver to be set up first");
+        return;
+    }
+    ESP_LOGI(TAG, "LVGL display driver: %p", disp);
+    
     if (main_menu != NULL) {
         ESP_LOGW(TAG, "Test menu already initialized");
         return;
