@@ -149,12 +149,56 @@ esp32-watch/
 ```
 
 ### 2. 编码规范
+
+#### 面向对象 C 编程
+- **使用结构体封装对象状态**：每个驱动/模块使用结构体保存私有状态
+  ```c
+  typedef struct {
+      i2c_port_t i2c_port;
+      uint8_t i2c_addr;
+      bool initialized;
+      // ... 其他私有成员
+  } xxx_driver_t;
+  ```
+- **使用单例模式**：每个驱动模块一个全局实例
+  ```c
+  static xxx_driver_t s_driver = {0};
+  ```
+- **方法命名规范**：`模块名_方法名 (对象，参数...)`
+  ```c
+  esp_err_t display_driver_init(display_driver_t *driver, const config_t *config);
+  esp_err_t display_driver_write_command(display_driver_t *driver, uint8_t cmd);
+  ```
+- **封装私有方法**：使用 `static` 限制访问范围
+- **提供构造函数/析构函数**：`xxx_init()` 和 `xxx_deinit()`
+
+#### 日志规范
+- **必须打印足够的日志**：每个关键步骤都要打印日志
+  ```c
+  ESP_LOGI(TAG, "Initializing %s...", DRIVER_NAME);
+  ESP_LOGI(TAG, "I2C port: %d, address: 0x%02X", i2c_port, i2c_addr);
+  ESP_LOGI(TAG, "%s initialized successfully", DRIVER_NAME);
+  ```
+- **错误日志必须包含**：
+  - 错误发生位置
+  - 错误代码 (`esp_err_t`)
+  - 相关参数值
+  ```c
+  ESP_LOGE(TAG, "Failed to write register 0x%02X: %s (0x%X)", 
+           reg, esp_err_to_name(ret), ret);
+  ```
+- **调试日志级别**：
+  - `ESP_LOGI` - 正常流程（初始化完成、状态变化）
+  - `ESP_LOGW` - 警告（非致命错误、降级处理）
+  - `ESP_LOGE` - 错误（操作失败、硬件异常）
+  - `ESP_LOGD` - 调试（详细数据、寄存器值，可条件编译）
+
+#### 其他规范
 - 函数命名：`snake_case`
 - 结构体：`typedef struct { ... } xxx_t;`
 - 宏定义：`ALL_CAPS_WITH_UNDERSCORE`
 - 所有外设驱动封装为 `.c/.h` 文件，提供统一接口
 - 任务栈大小：至少 4096 字节
-- 日志：使用 `ESP_LOGI/W/E`，禁止 `printf`
 - 错误处理：必须检查返回值
 
 ### 3. 功耗管理
