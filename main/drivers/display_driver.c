@@ -79,7 +79,7 @@ static esp_err_t display_driver_reset(void)
 static esp_err_t display_driver_config_pins(const display_driver_config_t *config)
 {
     gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << s_pin_dc),
+        .pin_bit_mask = (1ULL << s_pin_dc) | (1ULL << s_pin_cs),
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -172,7 +172,7 @@ esp_err_t display_driver_init(const display_driver_config_t *config)
     }
 
     spi_device_interface_config_t dev_cfg = {
-        .clock_speed_hz = config ? config->spi_speed : 40000000,
+        .clock_speed_hz = config ? config->spi_speed : 20000000,
         .mode = 0,
         .spics_io_num = s_pin_cs,
         .queue_size = 1,
