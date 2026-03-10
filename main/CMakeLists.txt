@@ -4,6 +4,7 @@ idf_component_register(
         "main.c"
         "display.c"
         "display_test.c"
+        "simple_test.c"
         "watch_face.c"
         "input.c"
         "wifi.c"

@@ -28,6 +28,7 @@
 #include "display_driver.h"
 #include "display.h"
 #include "display_test.h"
+#include "simple_test.h"
 #include "test_menu.h"
 #include "touch_driver.h"
 #include "battery_driver.h"
@@ -202,46 +203,12 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
-    // Initialize LVGL system (using esp_lcd)
-    ESP_LOGI(TAG, "Initializing LVGL system...");
-    esp_err_t lvgl_ret = lvgl_init_system();
-    if (lvgl_ret != ESP_OK) {
-        ESP_LOGE(TAG, "LVGL init failed: %s", esp_err_to_name(lvgl_ret));
-    } else {
-        ESP_LOGI(TAG, "LVGL system initialized");
-        
-        // Start LVGL tasks (reduced refresh rate)
-        lvgl_start_tasks();
-        
-        // Initialize watch face UI
-        ESP_LOGI(TAG, "Initializing watch face UI...");
-        watch_face_ui_init();
-        watch_face_ui_update_time(10, 53, 0);
-        watch_face_ui_update_date(2026, 3, 10);
-        watch_face_ui_update_battery(soc, voltage);
-        
-        ESP_LOGI(TAG, "Watch face UI ready - static display");
-    }
+    // Run SIMPLE test (no LVGL, direct esp_lcd)
+    ESP_LOGI(TAG, "Running simple display test...");
+    simple_test_run();
+    ESP_LOGI(TAG, "Simple test complete!");
     
-    // Initialize test menu first (but don't show it)
-    ESP_LOGI(TAG, "Initializing test menu (background)...");
-    test_menu_init();
-    
-    // Initialize BLE notification service
-    ESP_LOGI(TAG, "Initializing BLE notification service...");
-    esp_err_t ble_ret = ble_notify_init(ble_notify_callback);
-    if (ble_ret == ESP_OK) {
-        ble_notify_start_advertising();
-        ESP_LOGI(TAG, "BLE advertising started: %s", BLE_DEVICE_NAME);
-    } else {
-        ESP_LOGW(TAG, "BLE init failed: %s", esp_err_to_name(ble_ret));
-    }
-    
-    // Time update task DISABLED - causes flickering
-    // time_update_start();
-    
-    ESP_LOGI(TAG, "=== System Ready ===");
-    
+    ESP_LOGI(TAG, "=== Hardware Init Complete ===");
     return ESP_OK;
 }
 
@@ -250,7 +217,7 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 1.6.0 (LVGL Port with esp_lcd)");
+    ESP_LOGI(TAG, "Version: 1.7.0 (Simple Color Test)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware
