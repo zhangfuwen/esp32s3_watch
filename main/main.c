@@ -37,7 +37,7 @@
 
 static const char *TAG = "WATCH";
 
-static uint8_t lcd_buffer[DISPLAY_WIDTH * DISPLAY_HEIGHT * 2] __attribute__((aligned(4)));
+static lv_color_t lcd_buffer[DISPLAY_WIDTH * DISPLAY_HEIGHT / 10] __attribute__((aligned(4)));
 
 static void lvgl_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
 {
@@ -45,12 +45,12 @@ static void lvgl_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_col
     int32_t y1 = area->y1;
     int32_t x2 = area->x2 + 1;
     int32_t y2 = area->y2 + 1;
+    
+    uint32_t len = (x2 - x1) * (y2 - y1);
 
-    for (int y = y1; y < y2; y++) {
-        for (int x = x1; x < x2; x++) {
-            display_draw_pixel(x, y, color_p->full);
-            color_p++;
-        }
+    for (uint32_t i = 0; i < len; i++) {
+        display_draw_pixel(x1 + (i % (x2 - x1)), y1 + (i / (x2 - x1)), color_p->full);
+        color_p++;
     }
 
     lv_disp_flush_ready(disp_drv);
@@ -65,13 +65,18 @@ static esp_err_t init_lvgl_display(void)
     ESP_LOGI(TAG, "Initializing LVGL display...");
 
     static lv_disp_drv_t disp_drv;
+    static lv_disp_draw_buf_t disp_buf;
+    
     lv_disp_drv_init(&disp_drv);
+    
+    // Initialize draw buffer
+    lv_disp_draw_buf_init(&disp_buf, lcd_buffer, NULL, DISPLAY_WIDTH * DISPLAY_HEIGHT / 10);
 
     disp_drv.hor_res = DISPLAY_WIDTH;
     disp_drv.ver_res = DISPLAY_HEIGHT;
     disp_drv.flush_cb = lvgl_flush_cb;
     disp_drv.wait_cb = lvgl_wait_cb;
-    disp_drv.draw_buf = NULL;
+    disp_drv.draw_buf = &disp_buf;
 
     lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
     if (disp == NULL) {
