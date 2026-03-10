@@ -32,9 +32,10 @@
 #include "touch_driver.h"
 #include "battery_driver.h"
 #include "motion_detect.h"
-// #include "watch_face_ui.h"  // Temporarily disabled for testing
+#include "watch_face_ui.h"
 #include "ble_notify.h"
 #include "time_update.h"
+#include "lvgl_port.h"
 
 static const char *TAG = "WATCH";
 
@@ -201,10 +202,26 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
-    // Run simple display test (NO LVGL)
-    ESP_LOGI(TAG, "Running display test (colored stripes)...");
-    display_test_run();
-    ESP_LOGI(TAG, "Display test complete - check screen!");
+    // Initialize LVGL system (using esp_lcd)
+    ESP_LOGI(TAG, "Initializing LVGL system...");
+    esp_err_t lvgl_ret = lvgl_init_system();
+    if (lvgl_ret != ESP_OK) {
+        ESP_LOGE(TAG, "LVGL init failed: %s", esp_err_to_name(lvgl_ret));
+    } else {
+        ESP_LOGI(TAG, "LVGL system initialized");
+        
+        // Start LVGL tasks
+        lvgl_start_tasks();
+        
+        // Initialize watch face UI
+        ESP_LOGI(TAG, "Initializing watch face UI...");
+        watch_face_ui_init();
+        watch_face_ui_update_time(10, 43, 0);
+        watch_face_ui_update_date(2026, 3, 10);
+        watch_face_ui_update_battery(soc, voltage);
+        
+        ESP_LOGI(TAG, "Watch face UI ready");
+    }
     
     // Initialize test menu first (but don't show it)
     ESP_LOGI(TAG, "Initializing test menu (background)...");
@@ -245,7 +262,7 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 1.5.0 (SPI Display Test)");
+    ESP_LOGI(TAG, "Version: 1.6.0 (LVGL Port with esp_lcd)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware
