@@ -1,6 +1,10 @@
 /**
+ * LVGL Porting Layer for ESP32-S3 Watch
+ * 
  * @file lvgl_port.c
- * @brief LVGL Porting Layer for ESP32-S3 Watch
+ * @brief LVGL display and touch driver integration
+ * @version 0.3.0
+ * @date 2026-03-08
  */
 
 #include "lvgl_port.h"
@@ -16,6 +20,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
+#include "esp_lcd_types.h"
 
 static const char *TAG = "LVGL_PORT";
 
@@ -23,8 +28,8 @@ static const char *TAG = "LVGL_PORT";
 static esp_lcd_panel_io_handle_t panel_io = NULL;
 static esp_lcd_panel_handle_t panel = NULL;
 
-// LVGL display buffer
-#define LVGL_BUF_SIZE (DISPLAY_WIDTH * 40)
+// LVGL display buffer (smaller size for limited RAM)
+#define LVGL_BUF_SIZE (DISPLAY_WIDTH * 40)  // Smaller buffer
 static lv_disp_draw_buf_t disp_buf;
 static lv_color_t *buf1 = NULL;
 static lv_color_t *buf2 = NULL;
@@ -47,34 +52,17 @@ esp_err_t lvgl_display_init(void)
     ESP_LOGI(TAG, "LVGL Display Init %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     ESP_LOGI(TAG, "========================================");
     
-    // SPI bus - SKIP if already initialized by display_driver
-    // Check if SPI is already initialized
-    spi_device_handle_t test_handle;
-    const spi_device_interface_config_t test_dev_cfg = {
-        .clock_speed_hz = 1000000,
-        .mode = 0,
-        .spics_io_num = DISPLAY_CS_PIN,
-        .queue_size = 1,
+    // SPI bus
+    const spi_bus_config_t buscfg = {
+        .mosi_io_num = DISPLAY_MOSI_PIN,
+        .sclk_io_num = DISPLAY_SCLK_PIN,
+        .miso_io_num = -1,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
     };
-    
-    esp_err_t ret = spi_bus_add_device(SPI2_HOST, &test_dev_cfg, &test_handle);
-    if (ret == ESP_OK) {
-        // SPI not initialized, initialize it
-        ESP_LOGI(TAG, "SPI bus not initialized, initializing...");
-        const spi_bus_config_t buscfg = {
-            .mosi_io_num = DISPLAY_MOSI_PIN,
-            .sclk_io_num = DISPLAY_SCLK_PIN,
-            .miso_io_num = -1,
-            .quadwp_io_num = -1,
-            .quadhd_io_num = -1,
-            .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
-        };
-        ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
-        ESP_LOGI(TAG, "SPI OK");
-        spi_bus_remove_device(test_handle);
-    } else {
-        ESP_LOGI(TAG, "SPI bus already initialized (by display_driver)");
-    }
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
+    ESP_LOGI(TAG, "SPI OK");
     
     // Panel IO
     const esp_lcd_panel_io_spi_config_t io_config = {
@@ -92,10 +80,8 @@ esp_err_t lvgl_display_init(void)
     // Panel
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = DISPLAY_RESET_PIN,
-        .flags = {
-            .reset_active_high = 0,
-        },
-        .vendor_config = NULL,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .bits_per_pixel = 16,
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel));
     ESP_LOGI(TAG, "Panel OK");
@@ -113,14 +99,9 @@ esp_err_t lvgl_display_init(void)
     ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y));
     ESP_LOGI(TAG, "Offset OK");
     
-    // Invert colors
+    // Invert
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
     ESP_LOGI(TAG, "Invert OK");
-    
-    // Mirror/swap if needed
-    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY));
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y));
-    ESP_LOGI(TAG, "Swap/Mirror OK");
     
     // Display ON
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
@@ -145,7 +126,7 @@ esp_err_t lvgl_display_init(void)
     return ESP_OK;
 }
 
-// Initialize LVGL system
+// Initialize LVGL
 esp_err_t lvgl_init_system(void)
 {
     ESP_LOGI(TAG, "LVGL System Init...");
@@ -206,12 +187,12 @@ static void lvgl_tick_task(void *pvParameters)
     }
 }
 
-// LVGL main task - reduced frequency
+// LVGL main task
 static void lvgl_main_task(void *pvParameters)
 {
     while (1) {
         lv_timer_handler();
-        vTaskDelay(pdMS_TO_TICKS(50));  // 50ms instead of 10ms
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
