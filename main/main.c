@@ -31,6 +31,7 @@
 #include "touch_driver.h"
 #include "battery_driver.h"
 #include "motion_detect.h"
+#include "watch_face_ui.h"
 
 static const char *TAG = "WATCH";
 
@@ -168,10 +169,10 @@ static esp_err_t init_hardware(void) {
     
     // Initialize battery driver
     ESP_LOGI(TAG, "Initializing battery driver...");
+    uint8_t soc = 0;
+    uint16_t voltage = 0;
     esp_err_t batt_ret = battery_driver_init(&g_battery_driver, I2C_NUM_0, 0x36);
     if (batt_ret == ESP_OK) {
-        uint8_t soc = 0;
-        uint16_t voltage = 0;
         battery_driver_get_soc(&g_battery_driver, &soc);
         battery_driver_get_voltage(&g_battery_driver, &voltage);
         ESP_LOGI(TAG, "Battery: %d%%, %d mV", soc, voltage);
@@ -183,9 +184,20 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
-    // Initialize test menu
+    // Initialize watch face UI
+    ESP_LOGI(TAG, "Initializing watch face UI...");
+    watch_face_ui_init();
+    watch_face_ui_update_time(12, 0, 0);
+    watch_face_ui_update_date(2026, 3, 10);
+    watch_face_ui_update_battery(soc, voltage);
+    
+    // Switch to watch face screen
+    lv_scr_load(watch_face_ui_get_screen());
+    ESP_LOGI(TAG, "Watch face displayed");
+    
+    // Initialize test menu (but don't show it)
     test_menu_init();
-    ESP_LOGI(TAG, "Test menu initialized");
+    ESP_LOGI(TAG, "Test menu initialized (hidden)");
     
     return ESP_OK;
 }
