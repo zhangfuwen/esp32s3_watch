@@ -1,9 +1,6 @@
 /**
  * @file watch_face_chinese.c
- * @brief Chinese Watch Face - Using Images for Chinese Text
- * 
- * Since LVGL doesn't include Chinese fonts by default,
- * we use pre-rendered PNG images for Chinese characters.
+ * @brief Chinese Watch Face with Real Chinese Font Support
  */
 
 #include "watch_face_chinese.h"
@@ -14,6 +11,7 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "lvgl.h"
+#include "chinese_16.h"
 #include <stdio.h>
 #include <time.h>
 #include <inttypes.h>
@@ -71,7 +69,7 @@ static void update_time(void) {
     time(&now);
     localtime_r(&now, &timeinfo);
     
-    // Time: 12:30:00 (numbers work fine)
+    // Time: 12:30:00
     if (time_label) {
         char time_buf[20];
         snprintf(time_buf, sizeof(time_buf), "%02d:%02d:%02d", 
@@ -79,20 +77,20 @@ static void update_time(void) {
         lv_label_set_text(time_label, time_buf);
     }
     
-    // Date: 2026-03-10 (use dashes instead of Chinese)
+    // Date: 2026 年 03 月 10 日 (with Chinese font)
     if (date_label) {
         char date_buf[40];
-        snprintf(date_buf, sizeof(date_buf), "%04d-%02d-%02d", 
+        snprintf(date_buf, sizeof(date_buf), "%04d年%02d月%02d日", 
                  timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
         lv_label_set_text(date_label, date_buf);
     }
     
-    // Weekday: Mon/Tue/Wed (English abbreviations)
+    // Weekday: 星期二 (with Chinese font)
     if (weekday_label) {
-        const char *weekdays_en[] = {
-            "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+        const char *weekdays_cn[] = {
+            "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"
         };
-        lv_label_set_text(weekday_label, weekdays_en[timeinfo.tm_wday]);
+        lv_label_set_text(weekday_label, weekdays_cn[timeinfo.tm_wday]);
     }
 }
 
@@ -101,7 +99,7 @@ static void update_battery(void) {
         int soc = 75;
         
         char bat_buf[20];
-        snprintf(bat_buf, sizeof(bat_buf), "BAT: %d%%", soc);
+        snprintf(bat_buf, sizeof(bat_buf), "电量%d%%", soc);
         lv_label_set_text(battery_label, bat_buf);
         
         lv_bar_set_value(battery_bar, soc, LV_ANIM_OFF);
@@ -131,7 +129,8 @@ static void timer_cb(lv_timer_t *timer) {
 void watch_face_chinese_init(void) {
     start_time = (uint32_t)(esp_timer_get_time() / 1000);
     
-    ESP_LOGI(TAG, "Creating watch face (Unicode-safe version)...");
+    ESP_LOGI(TAG, "Creating Chinese watch face...");
+    ESP_LOGI(TAG, "Chinese font: chinese_16 (25 chars, 9.3KB)");
     
     // Create screen
     lv_obj_t *scr = lv_obj_create(NULL);
@@ -146,24 +145,24 @@ void watch_face_chinese_init(void) {
     lv_obj_set_style_border_width(screen_container, 0, 0);
     lv_obj_set_style_pad_all(screen_container, 0, 0);
     
-    // === TIME (LARGE) ===
+    // === TIME (LARGE, Numbers only) ===
     time_label = lv_label_create(screen_container);
     lv_label_set_text(time_label, "12:30:00");
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(time_label, COLOR_TIME, 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -50);
     
-    // === DATE (Numbers only) ===
+    // === DATE (Chinese with chinese_16 font) ===
     date_label = lv_label_create(screen_container);
-    lv_label_set_text(date_label, "2026-03-10");
-    lv_obj_set_style_text_font(date_label, &lv_font_montserrat_20, 0);
+    lv_label_set_text(date_label, "2026 年 03 月 10 日");
+    lv_obj_set_style_text_font(date_label, &chinese_16, 0);
     lv_obj_set_style_text_color(date_label, COLOR_DATE, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 0);
     
-    // === WEEKDAY (English) ===
+    // === WEEKDAY (Chinese with chinese_16 font) ===
     weekday_label = lv_label_create(screen_container);
-    lv_label_set_text(weekday_label, "Tue");
-    lv_obj_set_style_text_font(weekday_label, &lv_font_montserrat_20, 0);
+    lv_label_set_text(weekday_label, "星期二");
+    lv_obj_set_style_text_font(weekday_label, &chinese_16, 0);
     lv_obj_set_style_text_color(weekday_label, COLOR_WEEKDAY, 0);
     lv_obj_align(weekday_label, LV_ALIGN_CENTER, 0, 25);
     
@@ -177,10 +176,10 @@ void watch_face_chinese_init(void) {
     lv_obj_set_style_bg_opa(battery_bar, LV_OPA_COVER, LV_PART_INDICATOR);
     lv_obj_align(battery_bar, LV_ALIGN_CENTER, 0, 65);
     
-    // === BATTERY LABEL ===
+    // === BATTERY LABEL (Chinese with chinese_16 font) ===
     battery_label = lv_label_create(screen_container);
-    lv_label_set_text(battery_label, "BAT: 75%");
-    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_24, 0);
+    lv_label_set_text(battery_label, "电量 75%");
+    lv_obj_set_style_text_font(battery_label, &chinese_16, 0);
     lv_obj_set_style_text_color(battery_label, COLOR_BATTERY, 0);
     lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 95);
     
@@ -189,8 +188,10 @@ void watch_face_chinese_init(void) {
     watch_face_chinese_user_activity();
     last_activity_time = start_time;
     
-    ESP_LOGI(TAG, "Watch face init complete (numbers + English only)");
-    ESP_LOGI(TAG, "NOTE: Chinese characters not supported without font file");
+    ESP_LOGI(TAG, "Chinese watch face init complete");
+    ESP_LOGI(TAG, "Date label font: %p", &chinese_16);
+    ESP_LOGI(TAG, "Weekday label font: %p", &chinese_16);
+    ESP_LOGI(TAG, "Battery label font: %p", &chinese_16);
     
     // Start timer
     lv_timer_create(timer_cb, 1000, NULL);

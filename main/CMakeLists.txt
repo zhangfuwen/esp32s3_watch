@@ -17,6 +17,8 @@ idf_component_register(
         "ui/watch_face_ui.c"
         "ui/watch_face.c"
         "ui/watch_face_chinese.c"
+        # Fonts
+        "fonts/chinese_16.c"
         # LVGL Port
         "lvgl_port.c"
         "lvgl_test.c"
@@ -40,6 +42,7 @@ idf_component_register(
         "core"
         "drivers"
         "services"
+        "fonts"
     REQUIRES
         driver
         esp_wifi
