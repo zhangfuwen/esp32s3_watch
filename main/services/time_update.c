@@ -7,7 +7,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "watch_face_ui.h"
+// #include "watch_face_ui.h"  // Temporarily disabled
 #include "battery_driver.h"
 #include <time.h>
 #include <stdio.h>
@@ -36,23 +36,23 @@ static void time_update_task(void *pvParameters) {
         uint8_t minute = timeinfo.tm_min;
         uint8_t second = timeinfo.tm_sec;
         
-        // Update time display
-        watch_face_ui_update_time(hour, minute, second);
+        // Update time display (DISABLED FOR NOW)
+        // watch_face_ui_update_time(hour, minute, second);
         
         // Update date every minute
         if (second == 0 && minute != s_time_update.last_minute) {
-            watch_face_ui_update_date(
-                timeinfo.tm_year + 1900,
-                timeinfo.tm_mon + 1,
-                timeinfo.tm_mday
-            );
+            // watch_face_ui_update_date(
+            //     timeinfo.tm_year + 1900,
+            //     timeinfo.tm_mon + 1,
+            //     timeinfo.tm_mday
+            // );
             
             // Update battery every minute
             uint8_t soc = 0;
             uint16_t voltage = 0;
             battery_driver_get_soc(&g_battery_driver, &soc);
             battery_driver_get_voltage(&g_battery_driver, &voltage);
-            watch_face_ui_update_battery(soc, voltage);
+            // watch_face_ui_update_battery(soc, voltage);
             
             ESP_LOGI(TAG, "Time: %02d:%02d:%02d, Battery: %d%% (%d mV)",
                      hour, minute, second, soc, voltage);

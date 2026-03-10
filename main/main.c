@@ -31,7 +31,7 @@
 #include "touch_driver.h"
 #include "battery_driver.h"
 #include "motion_detect.h"
-#include "watch_face_ui.h"
+// #include "watch_face_ui.h"  // Temporarily disabled for testing
 #include "ble_notify.h"
 #include "time_update.h"
 
@@ -204,18 +204,37 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing test menu (background)...");
     test_menu_init();
     
-    // Initialize watch face UI
-    ESP_LOGI(TAG, "Initializing watch face UI...");
-    watch_face_ui_init();
-    watch_face_ui_update_time(12, 0, 0);
-    watch_face_ui_update_date(2026, 3, 10);
-    watch_face_ui_update_battery(soc, voltage);
+    // Simple LVGL test - create a label directly
+    ESP_LOGI(TAG, "Creating LVGL test screen...");
+    lv_obj_t *scr = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(scr, lv_color_make(0, 0, 50), 0);  // Dark blue background
     
-    // Switch to watch face screen LAST
-    ESP_LOGI(TAG, "Switching to watch face...");
-    lv_scr_load(watch_face_ui_get_screen());
+    lv_obj_t *label = lv_label_create(scr);
+    lv_label_set_text(label, "LVGL Test\n10:07");
+    lv_obj_set_style_text_color(label, lv_color_white(), 0);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    
+    lv_obj_t *btn = lv_btn_create(scr);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -20);
+    lv_obj_t *btn_label = lv_label_create(btn);
+    lv_label_set_text(btn_label, "Button");
+    
+    lv_scr_load(scr);
     lv_task_handler();  // Process LVGL tasks immediately
-    ESP_LOGI(TAG, "Watch face displayed");
+    ESP_LOGI(TAG, "LVGL test screen displayed");
+    
+    // Initialize watch face UI (DISABLED FOR NOW)
+    // ESP_LOGI(TAG, "Initializing watch face UI...");
+    // watch_face_ui_init();
+    // watch_face_ui_update_time(12, 0, 0);
+    // watch_face_ui_update_date(2026, 3, 10);
+    // watch_face_ui_update_battery(soc, voltage);
+    // 
+    // // Switch to watch face screen LAST
+    // ESP_LOGI(TAG, "Switching to watch face...");
+    // lv_scr_load(watch_face_ui_get_screen());
+    // lv_task_handler();  // Process LVGL tasks immediately
+    // ESP_LOGI(TAG, "Watch face displayed");
     
     // Initialize BLE notification service
     ESP_LOGI(TAG, "Initializing BLE notification service...");
@@ -239,7 +258,7 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 1.2.0 (Watch Face + BLE)");
+    ESP_LOGI(TAG, "Version: 1.4.0 (LVGL Test)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware
