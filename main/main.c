@@ -210,35 +210,22 @@ static esp_err_t init_hardware(void) {
     } else {
         ESP_LOGI(TAG, "LVGL system initialized");
         
-        // Start LVGL tasks
+        // Start LVGL tasks (reduced refresh rate)
         lvgl_start_tasks();
         
         // Initialize watch face UI
         ESP_LOGI(TAG, "Initializing watch face UI...");
         watch_face_ui_init();
-        watch_face_ui_update_time(10, 43, 0);
+        watch_face_ui_update_time(10, 53, 0);
         watch_face_ui_update_date(2026, 3, 10);
         watch_face_ui_update_battery(soc, voltage);
         
-        ESP_LOGI(TAG, "Watch face UI ready");
+        ESP_LOGI(TAG, "Watch face UI ready - static display");
     }
     
     // Initialize test menu first (but don't show it)
     ESP_LOGI(TAG, "Initializing test menu (background)...");
     test_menu_init();
-    
-    // Initialize watch face UI (DISABLED FOR NOW)
-    // ESP_LOGI(TAG, "Initializing watch face UI...");
-    // watch_face_ui_init();
-    // watch_face_ui_update_time(12, 0, 0);
-    // watch_face_ui_update_date(2026, 3, 10);
-    // watch_face_ui_update_battery(soc, voltage);
-    // 
-    // // Switch to watch face screen LAST
-    // ESP_LOGI(TAG, "Switching to watch face...");
-    // lv_scr_load(watch_face_ui_get_screen());
-    // lv_task_handler();  // Process LVGL tasks immediately
-    // ESP_LOGI(TAG, "Watch face displayed");
     
     // Initialize BLE notification service
     ESP_LOGI(TAG, "Initializing BLE notification service...");
@@ -250,9 +237,10 @@ static esp_err_t init_hardware(void) {
         ESP_LOGW(TAG, "BLE init failed: %s", esp_err_to_name(ble_ret));
     }
     
-    // Start time update task
-    ESP_LOGI(TAG, "Starting time update service...");
-    time_update_start();
+    // Time update task DISABLED - causes flickering
+    // time_update_start();
+    
+    ESP_LOGI(TAG, "=== System Ready ===");
     
     return ESP_OK;
 }

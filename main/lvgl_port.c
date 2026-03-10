@@ -183,22 +183,18 @@ esp_err_t lvgl_init_system(void)
 // LVGL tick task
 static void lvgl_tick_task(void *pvParameters)
 {
-    const TickType_t xDelay = pdMS_TO_TICKS(10);
-    
     while (1) {
         lv_tick_inc(10);
-        vTaskDelay(xDelay);
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
-// LVGL main task
+// LVGL main task - reduced frequency
 static void lvgl_main_task(void *pvParameters)
 {
-    const TickType_t xDelay = pdMS_TO_TICKS(10);
-    
     while (1) {
         lv_timer_handler();
-        vTaskDelay(xDelay);
+        vTaskDelay(pdMS_TO_TICKS(50));  // 50ms instead of 10ms
     }
 }
 
