@@ -38,7 +38,12 @@
 #include "time_update.h"
 #include "lvgl_port.h"
 #include "lvgl_test.h"
+#include "watch_face.h"
 #include "imu_task.h"
+
+// Forward declarations for watch_face
+void watch_face_init(void);
+void watch_face_user_activity(void);
 
 // Button GPIO
 #define BOOT_BUTTON_GPIO  GPIO_NUM_0
@@ -186,8 +191,8 @@ static esp_err_t init_hardware(void) {
         // Start LVGL tasks
         lvgl_start_tasks();
         
-        // Run LVGL test
-        lvgl_test_run();
+        // Initialize modern watch face
+        watch_face_init();
     }
     
     ESP_LOGI(TAG, "=== Hardware Init Complete ===");
@@ -229,7 +234,7 @@ void app_main(void) {
             vTaskDelay(pdMS_TO_TICKS(50));  // Debounce
             if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
                 ESP_LOGI(TAG, "BOOT button pressed - wake!");
-                lvgl_test_user_activity();
+                watch_face_user_activity();
                 while (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
                     vTaskDelay(pdMS_TO_TICKS(50));
                 }

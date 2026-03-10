@@ -14,7 +14,7 @@
 #include "freertos/task.h"
 
 // Forward declaration
-extern void lvgl_test_user_activity(void);
+extern void watch_face_user_activity(void);
 
 static const char *TAG = "IMU_TASK";
 
@@ -66,7 +66,7 @@ static void imu_poll_task(void *pvParameters) {
                     wake_count++;
                     ESP_LOGI(TAG, "Wrist wake! (count=%" PRIu32 ", reads=%" PRIu32 ")", wake_count, read_count);
                     // Trigger display wake
-                    lvgl_test_user_activity();
+                    watch_face_user_activity();
                 }
             }
         }

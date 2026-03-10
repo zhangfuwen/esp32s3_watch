@@ -12,7 +12,7 @@
 #include <string.h>
 
 // Forward declaration
-extern void lvgl_test_user_activity(void);
+extern void watch_face_user_activity(void);
 
 static const char *TAG = "MOTION";
 
@@ -118,7 +118,7 @@ bool motion_detect_check_wrist_wake(void) {
             
             // Turn on display
             #ifdef CONFIG_LVGL_TEST_ENABLED
-            lvgl_test_user_activity();
+            watch_face_user_activity();
             #endif
             
             return true;

@@ -15,6 +15,7 @@ idf_component_register(
         "ui/test_imu.c"
         "ui/test_battery.c"
         "ui/watch_face_ui.c"
+        "ui/watch_face.c"
         # LVGL Port
         "lvgl_port.c"
         "lvgl_test.c"
