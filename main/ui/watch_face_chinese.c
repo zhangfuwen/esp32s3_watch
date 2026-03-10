@@ -42,7 +42,7 @@ static uint32_t start_time = 0;
 #define COLOR_BATTERY   lv_color_hex(0x00FF00)  // Green
 #define COLOR_BAR_BG    lv_color_hex(0x333333)  // Dark gray
 
-void watch_face_user_activity(void) {
+void watch_face_chinese_user_activity(void) {
     uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
     
     if (!display_on) {
@@ -132,7 +132,7 @@ static void timer_cb(lv_timer_t *timer) {
     }
 }
 
-void watch_face_init(void) {
+void watch_face_chinese_init(void) {
     start_time = (uint32_t)(esp_timer_get_time() / 1000);
     
     ESP_LOGI(TAG, "Creating premium Chinese watch face...");
@@ -190,7 +190,7 @@ void watch_face_init(void) {
     
     // Show on boot
     display_on = false;
-    watch_face_user_activity();
+    watch_face_chinese_user_activity();
     last_activity_time = start_time;
     
     ESP_LOGI(TAG, "Premium Chinese watch face init complete");
