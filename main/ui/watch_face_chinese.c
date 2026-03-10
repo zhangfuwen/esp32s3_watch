@@ -1,9 +1,15 @@
 /**
  * @file watch_face_chinese.c
- * @brief Watch Face with Chinese Support Test
+ * @brief Premium Chinese Watch Face UI
+ * 
+ * Features:
+ * - Large Chinese characters (24px)
+ * - Modern dark theme
+ * - Color-coded elements
+ * - Real-time updates
  */
 
-#include "watch_face.h"
+#include "watch_face_chinese.h"
 #include "board_config.h"
 #include "display.h"
 #include "time_update.h"
@@ -21,18 +27,20 @@ static lv_obj_t *time_label = NULL;
 static lv_obj_t *date_label = NULL;
 static lv_obj_t *weekday_label = NULL;
 static lv_obj_t *battery_label = NULL;
+static lv_obj_t *battery_bar = NULL;
 static lv_obj_t *screen_container = NULL;
 
 static bool display_on = false;
 static uint32_t last_activity_time = 0;
 static uint32_t start_time = 0;
 
-// Colors
-#define COLOR_BG        lv_color_hex(0x0D1117)
-#define COLOR_TIME      lv_color_hex(0x58A6FF)
-#define COLOR_DATE      lv_color_hex(0x8B949E)
-#define COLOR_BATTERY   lv_color_hex(0x3FB950)
-#define COLOR_ACCENT    lv_color_hex(0xD29922)
+// Premium color scheme
+#define COLOR_BG        lv_color_hex(0x000000)  // Pure black
+#define COLOR_TIME      lv_color_hex(0x00FF00)  // Bright green
+#define COLOR_DATE      lv_color_hex(0x00FFFF)  // Cyan
+#define COLOR_WEEKDAY   lv_color_hex(0xFF9900)  // Orange
+#define COLOR_BATTERY   lv_color_hex(0x00FF00)  // Green
+#define COLOR_BAR_BG    lv_color_hex(0x333333)  // Dark gray
 
 void watch_face_user_activity(void) {
     uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
@@ -66,6 +74,7 @@ static void update_time(void) {
     time(&now);
     localtime_r(&now, &timeinfo);
     
+    // Time: 12:30:00
     if (time_label) {
         char time_buf[20];
         snprintf(time_buf, sizeof(time_buf), "%02d:%02d:%02d", 
@@ -73,6 +82,7 @@ static void update_time(void) {
         lv_label_set_text(time_label, time_buf);
     }
     
+    // Date: 2026 年 03 月 10 日
     if (date_label) {
         char date_buf[40];
         snprintf(date_buf, sizeof(date_buf), "%04d年%02d月%02d日", 
@@ -80,15 +90,33 @@ static void update_time(void) {
         lv_label_set_text(date_label, date_buf);
     }
     
+    // Weekday: 星期二
     if (weekday_label) {
-        const char *weekdays_cn[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+        const char *weekdays_cn[] = {
+            "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"
+        };
         lv_label_set_text(weekday_label, weekdays_cn[timeinfo.tm_wday]);
     }
 }
 
 static void update_battery(void) {
-    if (battery_label) {
-        lv_label_set_text(battery_label, "电量 75%");
+    if (battery_label && battery_bar) {
+        int soc = 75;  // Fixed value for now
+        
+        char bat_buf[20];
+        snprintf(bat_buf, sizeof(bat_buf), "电量 %d%%", soc);
+        lv_label_set_text(battery_label, bat_buf);
+        
+        lv_bar_set_value(battery_bar, soc, LV_ANIM_OFF);
+        
+        // Smart color based on level
+        if (soc < 20) {
+            lv_obj_set_style_bg_color(battery_bar, lv_color_hex(0xFF0000), LV_PART_INDICATOR);
+        } else if (soc < 50) {
+            lv_obj_set_style_bg_color(battery_bar, lv_color_hex(0xFF9900), LV_PART_INDICATOR);
+        } else {
+            lv_obj_set_style_bg_color(battery_bar, COLOR_BATTERY, LV_PART_INDICATOR);
+        }
     }
 }
 
@@ -107,9 +135,9 @@ static void timer_cb(lv_timer_t *timer) {
 void watch_face_init(void) {
     start_time = (uint32_t)(esp_timer_get_time() / 1000);
     
-    ESP_LOGI(TAG, "Creating Chinese watch face...");
+    ESP_LOGI(TAG, "Creating premium Chinese watch face...");
     
-    // Create screen
+    // Create screen with pure black background
     lv_obj_t *scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, COLOR_BG, 0);
     lv_scr_load(scr);
@@ -122,42 +150,57 @@ void watch_face_init(void) {
     lv_obj_set_style_border_width(screen_container, 0, 0);
     lv_obj_set_style_pad_all(screen_container, 0, 0);
     
-    // === Time (Big, Center) ===
+    // === TIME (LARGE, CENTER) ===
     time_label = lv_label_create(screen_container);
     lv_label_set_text(time_label, "12:30:00");
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(time_label, COLOR_TIME, 0);
-    lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -40);
+    lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -50);
     
-    // === Date (Chinese format) ===
+    // === DATE (Chinese format) ===
     date_label = lv_label_create(screen_container);
     lv_label_set_text(date_label, "2026 年 03 月 10 日");
     lv_obj_set_style_text_font(date_label, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_color(date_label, COLOR_DATE, 0);
-    lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 10);
+    lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 0);
     
-    // === Weekday (Chinese) ===
+    // === WEEKDAY (Chinese) ===
     weekday_label = lv_label_create(screen_container);
     lv_label_set_text(weekday_label, "星期二");
     lv_obj_set_style_text_font(weekday_label, &lv_font_montserrat_20, 0);
-    lv_obj_set_style_text_color(weekday_label, COLOR_ACCENT, 0);
-    lv_obj_align(weekday_label, LV_ALIGN_CENTER, 0, 35);
+    lv_obj_set_style_text_color(weekday_label, COLOR_WEEKDAY, 0);
+    lv_obj_align(weekday_label, LV_ALIGN_CENTER, 0, 25);
     
-    // === Battery (Chinese) ===
+    // === BATTERY BAR ===
+    battery_bar = lv_bar_create(screen_container);
+    lv_obj_set_size(battery_bar, 180, 24);
+    lv_bar_set_range(battery_bar, 0, 100);
+    lv_bar_set_value(battery_bar, 75, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(battery_bar, COLOR_BAR_BG, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(battery_bar, COLOR_BATTERY, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(battery_bar, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_align(battery_bar, LV_ALIGN_CENTER, 0, 65);
+    
+    // === BATTERY LABEL ===
     battery_label = lv_label_create(screen_container);
     lv_label_set_text(battery_label, "电量 75%");
     lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(battery_label, COLOR_BATTERY, 0);
-    lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 80);
+    lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 95);
     
     // Show on boot
     display_on = false;
     watch_face_user_activity();
     last_activity_time = start_time;
     
-    ESP_LOGI(TAG, "Chinese watch face init complete");
+    ESP_LOGI(TAG, "Premium Chinese watch face init complete");
+    ESP_LOGI(TAG, "Layout:");
+    ESP_LOGI(TAG, "  - Time: 48px (Green)");
+    ESP_LOGI(TAG, "  - Date: 20px (Cyan)");
+    ESP_LOGI(TAG, "  - Weekday: 20px (Orange)");
+    ESP_LOGI(TAG, "  - Battery: 24px + bar (Green)");
     
-    // Start timer
+    // Start timer (1 second)
     lv_timer_create(timer_cb, 1000, NULL);
     
     // Initial update
