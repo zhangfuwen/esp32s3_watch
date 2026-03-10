@@ -38,7 +38,7 @@
 #include "time_update.h"
 #include "lvgl_port.h"
 #include "lvgl_test.h"
-#include "watch_face.h"
+#include "watch_face_chinese.h"
 #include "imu_task.h"
 
 // Forward declarations for watch_face

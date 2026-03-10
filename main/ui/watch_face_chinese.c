@@ -1,0 +1,166 @@
+/**
+ * @file watch_face_chinese.c
+ * @brief Watch Face with Chinese Support Test
+ */
+
+#include "watch_face.h"
+#include "board_config.h"
+#include "display.h"
+#include "time_update.h"
+#include "esp_log.h"
+#include "esp_heap_caps.h"
+#include "esp_timer.h"
+#include "lvgl.h"
+#include <stdio.h>
+#include <time.h>
+#include <inttypes.h>
+
+static const char *TAG = "WATCH_FACE_CN";
+
+static lv_obj_t *time_label = NULL;
+static lv_obj_t *date_label = NULL;
+static lv_obj_t *weekday_label = NULL;
+static lv_obj_t *battery_label = NULL;
+static lv_obj_t *screen_container = NULL;
+
+static bool display_on = false;
+static uint32_t last_activity_time = 0;
+static uint32_t start_time = 0;
+
+// Colors
+#define COLOR_BG        lv_color_hex(0x0D1117)
+#define COLOR_TIME      lv_color_hex(0x58A6FF)
+#define COLOR_DATE      lv_color_hex(0x8B949E)
+#define COLOR_BATTERY   lv_color_hex(0x3FB950)
+#define COLOR_ACCENT    lv_color_hex(0xD29922)
+
+void watch_face_user_activity(void) {
+    uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+    
+    if (!display_on) {
+        if (screen_container) {
+            lv_obj_clear_flag(screen_container, LV_OBJ_FLAG_HIDDEN);
+        }
+        gpio_set_level(DISPLAY_BACKLIGHT_PIN, 1);
+        display_on = true;
+        ESP_LOGI(TAG, "Display ON");
+    }
+    
+    last_activity_time = now;
+}
+
+static void display_turn_off(void) {
+    if (display_on) {
+        if (screen_container) {
+            lv_obj_add_flag(screen_container, LV_OBJ_FLAG_HIDDEN);
+        }
+        gpio_set_level(DISPLAY_BACKLIGHT_PIN, 0);
+        display_on = false;
+        ESP_LOGI(TAG, "Display OFF");
+    }
+}
+
+static void update_time(void) {
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    
+    if (time_label) {
+        char time_buf[20];
+        snprintf(time_buf, sizeof(time_buf), "%02d:%02d:%02d", 
+                 timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        lv_label_set_text(time_label, time_buf);
+    }
+    
+    if (date_label) {
+        char date_buf[40];
+        snprintf(date_buf, sizeof(date_buf), "%04d年%02d月%02d日", 
+                 timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+        lv_label_set_text(date_label, date_buf);
+    }
+    
+    if (weekday_label) {
+        const char *weekdays_cn[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+        lv_label_set_text(weekday_label, weekdays_cn[timeinfo.tm_wday]);
+    }
+}
+
+static void update_battery(void) {
+    if (battery_label) {
+        lv_label_set_text(battery_label, "电量 75%");
+    }
+}
+
+static void timer_cb(lv_timer_t *timer) {
+    (void)timer;
+    
+    update_time();
+    update_battery();
+    
+    uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+    if (display_on && (now - last_activity_time > 10000)) {
+        display_turn_off();
+    }
+}
+
+void watch_face_init(void) {
+    start_time = (uint32_t)(esp_timer_get_time() / 1000);
+    
+    ESP_LOGI(TAG, "Creating Chinese watch face...");
+    
+    // Create screen
+    lv_obj_t *scr = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(scr, COLOR_BG, 0);
+    lv_scr_load(scr);
+    
+    // Main container
+    screen_container = lv_obj_create(scr);
+    lv_obj_set_size(screen_container, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lv_obj_set_pos(screen_container, 0, 0);
+    lv_obj_set_style_bg_opa(screen_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(screen_container, 0, 0);
+    lv_obj_set_style_pad_all(screen_container, 0, 0);
+    
+    // === Time (Big, Center) ===
+    time_label = lv_label_create(screen_container);
+    lv_label_set_text(time_label, "12:30:00");
+    lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_color(time_label, COLOR_TIME, 0);
+    lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -40);
+    
+    // === Date (Chinese format) ===
+    date_label = lv_label_create(screen_container);
+    lv_label_set_text(date_label, "2026 年 03 月 10 日");
+    lv_obj_set_style_text_font(date_label, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_color(date_label, COLOR_DATE, 0);
+    lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 10);
+    
+    // === Weekday (Chinese) ===
+    weekday_label = lv_label_create(screen_container);
+    lv_label_set_text(weekday_label, "星期二");
+    lv_obj_set_style_text_font(weekday_label, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_color(weekday_label, COLOR_ACCENT, 0);
+    lv_obj_align(weekday_label, LV_ALIGN_CENTER, 0, 35);
+    
+    // === Battery (Chinese) ===
+    battery_label = lv_label_create(screen_container);
+    lv_label_set_text(battery_label, "电量 75%");
+    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(battery_label, COLOR_BATTERY, 0);
+    lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 80);
+    
+    // Show on boot
+    display_on = false;
+    watch_face_user_activity();
+    last_activity_time = start_time;
+    
+    ESP_LOGI(TAG, "Chinese watch face init complete");
+    
+    // Start timer
+    lv_timer_create(timer_cb, 1000, NULL);
+    
+    // Initial update
+    update_time();
+    update_battery();
+}
