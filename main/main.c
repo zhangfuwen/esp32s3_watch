@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -16,7 +17,6 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
-#include "driver/spi_master.h"
 #include "driver/spi_master.h"
 
 #include "lvgl.h"
@@ -171,7 +171,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(init_hardware());
     
     ESP_LOGI(TAG, "=== System Ready ===");
-    ESP_LOGI(TAG, "Free heap: %u bytes", esp_get_free_heap_size());
+    ESP_LOGI(TAG, "Free heap: %" PRIu32 " bytes", esp_get_free_heap_size());
     
     // Main loop
     while (1) {
