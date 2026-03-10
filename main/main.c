@@ -28,6 +28,7 @@
 #include "display_driver.h"
 #include "display.h"
 #include "test_menu.h"
+#include "touch_driver.h"
 
 static const char *TAG = "WATCH";
 
@@ -150,6 +151,17 @@ static esp_err_t init_hardware(void) {
     // Initialize LVGL display driver
     if (init_lvgl_display() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize LVGL display");
+    }
+    
+    // Initialize touch driver
+    ESP_LOGI(TAG, "Initializing touch driver...");
+    esp_err_t touch_ret = touch_driver_init(&g_touch_driver, I2C_NUM_0, 0x15, GPIO_NUM_41);
+    if (touch_ret == ESP_OK) {
+        // Register LVGL touch input device
+        static lv_indev_drv_t indev_drv;
+        touch_driver_register_lvgl(&indev_drv, &g_touch_driver);
+    } else {
+        ESP_LOGW(TAG, "Touch driver init failed: %s, continuing without touch", esp_err_to_name(touch_ret));
     }
     
     // Initialize test menu
