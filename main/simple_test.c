@@ -54,17 +54,13 @@ esp_err_t simple_test_run(void) {
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
     ESP_LOGI(TAG, "Init OK");
     
-    // Set offset
-    ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y));
+    // Set offset/gap
+    ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, 0, 0));
     ESP_LOGI(TAG, "Offset OK");
     
-    // Invert
-    ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
-    ESP_LOGI(TAG, "Invert OK");
-    
     // Swap/Mirror
-    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY));
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y));
+    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, false));
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, false, false));
     ESP_LOGI(TAG, "Swap/Mirror OK");
     
     // Backlight
@@ -86,8 +82,9 @@ esp_err_t simple_test_run(void) {
     // Draw test pattern
     ESP_LOGI(TAG, "Drawing test pattern...");
     
-    // Fill screen with RED
+    // Fill screen with RED (full 240x284)
     uint16_t red = 0xF800;
+    ESP_LOGI(TAG, "Drawing RED: 240x284");
     for (int y = 0; y < DISPLAY_HEIGHT; y++) {
         esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, &red);
     }
@@ -97,6 +94,7 @@ esp_err_t simple_test_run(void) {
     
     // Fill screen with GREEN
     uint16_t green = 0x07E0;
+    ESP_LOGI(TAG, "Drawing GREEN: 240x284");
     for (int y = 0; y < DISPLAY_HEIGHT; y++) {
         esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, &green);
     }
@@ -106,6 +104,7 @@ esp_err_t simple_test_run(void) {
     
     // Fill screen with BLUE
     uint16_t blue = 0x001F;
+    ESP_LOGI(TAG, "Drawing BLUE: 240x284");
     for (int y = 0; y < DISPLAY_HEIGHT; y++) {
         esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, &blue);
     }
