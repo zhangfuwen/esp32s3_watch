@@ -195,6 +195,10 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
+    // Initialize test menu first (but don't show it)
+    ESP_LOGI(TAG, "Initializing test menu (background)...");
+    test_menu_init();
+    
     // Initialize watch face UI
     ESP_LOGI(TAG, "Initializing watch face UI...");
     watch_face_ui_init();
@@ -202,13 +206,11 @@ static esp_err_t init_hardware(void) {
     watch_face_ui_update_date(2026, 3, 10);
     watch_face_ui_update_battery(soc, voltage);
     
-    // Switch to watch face screen
+    // Switch to watch face screen LAST
+    ESP_LOGI(TAG, "Switching to watch face...");
     lv_scr_load(watch_face_ui_get_screen());
+    lv_task_handler();  // Process LVGL tasks immediately
     ESP_LOGI(TAG, "Watch face displayed");
-    
-    // Initialize test menu (but don't show it)
-    test_menu_init();
-    ESP_LOGI(TAG, "Test menu initialized (hidden)");
     
     // Initialize BLE notification service
     ESP_LOGI(TAG, "Initializing BLE notification service...");
