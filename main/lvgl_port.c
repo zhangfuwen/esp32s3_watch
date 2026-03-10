@@ -47,17 +47,34 @@ esp_err_t lvgl_display_init(void)
     ESP_LOGI(TAG, "LVGL Display Init %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     ESP_LOGI(TAG, "========================================");
     
-    // SPI bus
-    const spi_bus_config_t buscfg = {
-        .mosi_io_num = DISPLAY_MOSI_PIN,
-        .sclk_io_num = DISPLAY_SCLK_PIN,
-        .miso_io_num = -1,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-        .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
+    // SPI bus - SKIP if already initialized by display_driver
+    // Check if SPI is already initialized
+    spi_device_handle_t test_handle;
+    const spi_device_interface_config_t test_dev_cfg = {
+        .clock_speed_hz = 1000000,
+        .mode = 0,
+        .spics_io_num = DISPLAY_CS_PIN,
+        .queue_size = 1,
     };
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
-    ESP_LOGI(TAG, "SPI OK");
+    
+    esp_err_t ret = spi_bus_add_device(SPI2_HOST, &test_dev_cfg, &test_handle);
+    if (ret == ESP_OK) {
+        // SPI not initialized, initialize it
+        ESP_LOGI(TAG, "SPI bus not initialized, initializing...");
+        const spi_bus_config_t buscfg = {
+            .mosi_io_num = DISPLAY_MOSI_PIN,
+            .sclk_io_num = DISPLAY_SCLK_PIN,
+            .miso_io_num = -1,
+            .quadwp_io_num = -1,
+            .quadhd_io_num = -1,
+            .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
+        };
+        ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
+        ESP_LOGI(TAG, "SPI OK");
+        spi_bus_remove_device(test_handle);
+    } else {
+        ESP_LOGI(TAG, "SPI bus already initialized (by display_driver)");
+    }
     
     // Panel IO
     const esp_lcd_panel_io_spi_config_t io_config = {
