@@ -22,6 +22,7 @@ idf_component_register(
         "drivers/battery_driver.c"
         # Services
         "services/time_service.c"
+        "services/motion_detect.c"
     INCLUDE_DIRS 
         "../include"
         "ui"

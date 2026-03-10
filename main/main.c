@@ -30,6 +30,7 @@
 #include "test_menu.h"
 #include "touch_driver.h"
 #include "battery_driver.h"
+#include "motion_detect.h"
 
 static const char *TAG = "WATCH";
 
@@ -177,6 +178,10 @@ static esp_err_t init_hardware(void) {
     } else {
         ESP_LOGW(TAG, "Battery driver init failed: %s, continuing without battery", esp_err_to_name(batt_ret));
     }
+    
+    // Initialize motion detection
+    ESP_LOGI(TAG, "Initializing motion detection...");
+    motion_detect_init();
     
     // Initialize test menu
     test_menu_init();
