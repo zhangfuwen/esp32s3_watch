@@ -25,6 +25,7 @@ idf_component_register(
         "services/time_service.c"
         "services/motion_detect.c"
         "services/ble_notify.c"
+        "services/time_update.c"
     INCLUDE_DIRS 
         "../include"
         "ui"

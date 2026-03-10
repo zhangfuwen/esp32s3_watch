@@ -33,6 +33,7 @@
 #include "motion_detect.h"
 #include "watch_face_ui.h"
 #include "ble_notify.h"
+#include "time_update.h"
 
 static const char *TAG = "WATCH";
 
@@ -218,6 +219,10 @@ static esp_err_t init_hardware(void) {
     } else {
         ESP_LOGW(TAG, "BLE init failed: %s", esp_err_to_name(ble_ret));
     }
+    
+    // Start time update task
+    ESP_LOGI(TAG, "Starting time update service...");
+    time_update_start();
     
     return ESP_OK;
 }
