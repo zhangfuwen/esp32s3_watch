@@ -166,58 +166,11 @@ static esp_err_t init_hardware(void) {
     ESP_ERROR_CHECK(power_manager_init());
     ESP_LOGI(TAG, "Power manager initialized");
     
-    // Initialize display with default config
-    display_driver_config_t disp_config = {
-        .spi_host = SPI2_HOST,
-        .pin_mosi = DISPLAY_MOSI_PIN,
-        .pin_sclk = DISPLAY_SCLK_PIN,
-        .pin_cs = DISPLAY_CS_PIN,
-        .pin_dc = DISPLAY_DC_PIN,
-        .pin_rst = -1,  // No reset pin
-        .pin_backlight = DISPLAY_BACKLIGHT_PIN,
-        .spi_speed = 40000000,
-        .rotation = DISPLAY_ROTATION_0,
-        .invert_colors = false,
-        .swap_xy = false
-    };
-    ESP_ERROR_CHECK(display_driver_init(&disp_config));
-    ESP_LOGI(TAG, "Display driver initialized");
+    // Initialize motion detection
+    ESP_LOGI(TAG, "Initializing motion detection...");
+    motion_detect_init();
     
-    // Initialize LVGL
-    ESP_LOGI(TAG, "Initializing LVGL...");
-    lv_init();
-    ESP_LOGI(TAG, "LVGL initialized");
-    
-    // Initialize LVGL display driver
-    if (init_lvgl_display() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize LVGL display");
-    }
-    
-    // Initialize touch driver
-    ESP_LOGI(TAG, "Initializing touch driver...");
-    esp_err_t touch_ret = touch_driver_init(&g_touch_driver, I2C_NUM_0, 0x15, GPIO_NUM_41);
-    if (touch_ret == ESP_OK) {
-        // Register LVGL touch input device
-        static lv_indev_drv_t indev_drv;
-        touch_driver_register_lvgl(&indev_drv, &g_touch_driver);
-    } else {
-        ESP_LOGW(TAG, "Touch driver init failed: %s, continuing without touch", esp_err_to_name(touch_ret));
-    }
-    
-    // Initialize battery driver
-    ESP_LOGI(TAG, "Initializing battery driver...");
-    uint8_t soc = 0;
-    uint16_t voltage = 0;
-    esp_err_t batt_ret = battery_driver_init(&g_battery_driver, I2C_NUM_0, 0x36);
-    if (batt_ret == ESP_OK) {
-        battery_driver_get_soc(&g_battery_driver, &soc);
-        battery_driver_get_voltage(&g_battery_driver, &voltage);
-        ESP_LOGI(TAG, "Battery: %d%%, %d mV", soc, voltage);
-    } else {
-        ESP_LOGW(TAG, "Battery driver init failed: %s, continuing without battery", esp_err_to_name(batt_ret));
-    }
-    
-    // Initialize LVGL system
+    // Initialize LVGL system (includes display init)
     ESP_LOGI(TAG, "Initializing LVGL system...");
     esp_err_t lvgl_ret = lvgl_init_system();
     if (lvgl_ret != ESP_OK) {
