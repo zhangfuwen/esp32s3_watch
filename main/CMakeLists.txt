@@ -17,6 +17,7 @@ idf_component_register(
         "ui/watch_face_ui.c"
         # LVGL Port
         "lvgl_port.c"
+        "lvgl_test.c"
         # Core modules
         "core/event_bus.c"
         "core/power_manager.c"

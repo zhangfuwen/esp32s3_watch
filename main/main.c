@@ -37,6 +37,7 @@
 #include "ble_notify.h"
 #include "time_update.h"
 #include "lvgl_port.h"
+#include "lvgl_test.h"
 
 // Button GPIO
 #define BOOT_BUTTON_GPIO  GPIO_NUM_0
@@ -216,12 +217,23 @@ static esp_err_t init_hardware(void) {
         ESP_LOGW(TAG, "Battery driver init failed: %s, continuing without battery", esp_err_to_name(batt_ret));
     }
     
-    // Initialize motion detection
-    ESP_LOGI(TAG, "Initializing motion detection...");
-    motion_detect_init();
+    // Initialize LVGL system
+    ESP_LOGI(TAG, "Initializing LVGL system...");
+    esp_err_t lvgl_ret = lvgl_init_system();
+    if (lvgl_ret != ESP_OK) {
+        ESP_LOGE(TAG, "LVGL init failed: %s", esp_err_to_name(lvgl_ret));
+    } else {
+        ESP_LOGI(TAG, "LVGL system initialized");
+        
+        // Start LVGL tasks
+        lvgl_start_tasks();
+        
+        // Run LVGL test
+        lvgl_test_run();
+    }
     
     ESP_LOGI(TAG, "=== Hardware Init Complete ===");
-    ESP_LOGI(TAG, "Press BOOT button (GPIO0) to run display test");
+    ESP_LOGI(TAG, "Press BOOT button (GPIO0) to run simple display test");
     
     return ESP_OK;
 }
@@ -231,7 +243,7 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 1.8.0 (Button Trigger Test)");
+    ESP_LOGI(TAG, "Version: 1.9.0 (LVGL Test)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware
@@ -248,7 +260,8 @@ void app_main(void) {
     gpio_config(&btn_conf);
     
     ESP_LOGI(TAG, "=== System Ready ===");
-    ESP_LOGI(TAG, "Waiting for BOOT button press...");
+    ESP_LOGI(TAG, "LVGL test screen should be visible");
+    ESP_LOGI(TAG, "Press BOOT button to run simple test...");
     
     // Wait for BOOT button press
     while (1) {
@@ -258,7 +271,7 @@ void app_main(void) {
             
             // Confirm button press
             if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
-                ESP_LOGI(TAG, "Running display test...");
+                ESP_LOGI(TAG, "Running simple display test...");
                 simple_test_run();
                 ESP_LOGI(TAG, "Display test complete!");
                 ESP_LOGI(TAG, "Press BOOT button again to re-run test");
