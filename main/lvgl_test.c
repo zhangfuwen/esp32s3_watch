@@ -20,25 +20,41 @@ static lv_obj_t *time_label = NULL;
 static lv_obj_t *date_label = NULL;
 static lv_obj_t *status_label = NULL;
 static lv_obj_t *screen_container = NULL;
+static lv_obj_t *backlight_control = NULL;
 
 static bool display_on = false;
 static uint32_t last_activity_time = 0;
 
 // Turn display on
 static void display_turn_on(void) {
-    if (!display_on && screen_container) {
-        lv_obj_clear_flag(screen_container, LV_OBJ_FLAG_HIDDEN);
+    if (!display_on) {
+        if (screen_container) {
+            lv_obj_clear_flag(screen_container, LV_OBJ_FLAG_HIDDEN);
+        }
+        // Turn on backlight
+        if (backlight_control) {
+            lv_obj_clear_flag(backlight_control, LV_OBJ_FLAG_HIDDEN);
+        }
+        gpio_set_level(DISPLAY_BACKLIGHT_PIN, 1);
         display_on = true;
+        last_activity_time = (uint32_t)(esp_timer_get_time() / 1000);
         ESP_LOGI(TAG, "Display ON");
+    } else {
+        // Already on, just update activity time
+        last_activity_time = (uint32_t)(esp_timer_get_time() / 1000);
     }
 }
 
 // Turn display off
 static void display_turn_off(void) {
-    if (display_on && screen_container) {
-        lv_obj_add_flag(screen_container, LV_OBJ_FLAG_HIDDEN);
+    if (display_on) {
+        if (screen_container) {
+            lv_obj_add_flag(screen_container, LV_OBJ_FLAG_HIDDEN);
+        }
+        // Turn off backlight
+        gpio_set_level(DISPLAY_BACKLIGHT_PIN, 0);
         display_on = false;
-        ESP_LOGI(TAG, "Display OFF");
+        ESP_LOGI(TAG, "Display OFF (backlight off)");
     }
 }
 
@@ -123,6 +139,9 @@ esp_err_t lvgl_test_run(void) {
     lv_obj_set_style_bg_color(screen_container, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(screen_container, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(screen_container, 0, 0);
+    
+    // Backlight is controlled by GPIO only (no LVGL object needed)
+    backlight_control = NULL;
     
     // Title - WHITE, LARGE FONT
     lv_obj_t *title = lv_label_create(screen_container);

@@ -38,6 +38,7 @@
 #include "time_update.h"
 #include "lvgl_port.h"
 #include "lvgl_test.h"
+#include "imu_task.h"
 
 // Button GPIO
 #define BOOT_BUTTON_GPIO  GPIO_NUM_0
@@ -170,6 +171,10 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
+    // Start IMU polling task (for wrist wake)
+    ESP_LOGI(TAG, "Starting IMU task...");
+    imu_task_start();
+    
     // Initialize LVGL system (includes display init)
     ESP_LOGI(TAG, "Initializing LVGL system...");
     esp_err_t lvgl_ret = lvgl_init_system();
@@ -217,15 +222,18 @@ void app_main(void) {
     ESP_LOGI(TAG, "Features: Large Font + Wrist Wake + Auto Sleep");
     ESP_LOGI(TAG, "Press BOOT button or raise wrist to wake...");
     
-    // Main loop - check buttons and motion
+    // Main loop - just check buttons (IMU task runs in background)
     while (1) {
         // Check BOOT button (manual wake)
         if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
             vTaskDelay(pdMS_TO_TICKS(50));  // Debounce
             if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
-                ESP_LOGI(TAG, "BOOT button pressed!");
+                ESP_LOGI(TAG, "BOOT button pressed - wake!");
                 lvgl_test_user_activity();
-                vTaskDelay(pdMS_TO_TICKS(200));  // Wait for release
+                while (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
+                    vTaskDelay(pdMS_TO_TICKS(50));
+                }
+                vTaskDelay(pdMS_TO_TICKS(200));
             }
         }
         
