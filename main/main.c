@@ -38,6 +38,9 @@
 #include "time_update.h"
 #include "lvgl_port.h"
 
+// Button GPIO
+#define BOOT_BUTTON_GPIO  GPIO_NUM_0
+
 static const char *TAG = "WATCH";
 
 static lv_color_t lcd_buffer[DISPLAY_WIDTH * DISPLAY_HEIGHT / 10] __attribute__((aligned(4)));
@@ -217,12 +220,9 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
-    // Run SIMPLE test (no LVGL, direct esp_lcd)
-    ESP_LOGI(TAG, "Running simple display test...");
-    simple_test_run();
-    ESP_LOGI(TAG, "Simple test complete!");
-    
     ESP_LOGI(TAG, "=== Hardware Init Complete ===");
+    ESP_LOGI(TAG, "Press BOOT button (GPIO0) to run display test");
+    
     return ESP_OK;
 }
 
@@ -231,18 +231,39 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 1.7.0 (Simple Color Test)");
+    ESP_LOGI(TAG, "Version: 1.8.0 (Button Trigger Test)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware
     ESP_ERROR_CHECK(init_hardware());
     
-    ESP_LOGI(TAG, "=== System Ready ===");
-    ESP_LOGI(TAG, "Free heap: %" PRIu32 " bytes", esp_get_free_heap_size());
+    // Configure BOOT button as input
+    gpio_config_t btn_conf = {
+        .pin_bit_mask = (1ULL << BOOT_BUTTON_GPIO),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&btn_conf);
     
-    // Main loop
+    ESP_LOGI(TAG, "=== System Ready ===");
+    ESP_LOGI(TAG, "Waiting for BOOT button press...");
+    
+    // Wait for BOOT button press
     while (1) {
-        power_manager_user_activity();
-        vTaskDelay(pdMS_TO_TICKS(100));
+        if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
+            ESP_LOGI(TAG, "BOOT button pressed!");
+            vTaskDelay(pdMS_TO_TICKS(50));  // Debounce
+            
+            // Confirm button press
+            if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
+                ESP_LOGI(TAG, "Running display test...");
+                simple_test_run();
+                ESP_LOGI(TAG, "Display test complete!");
+                ESP_LOGI(TAG, "Press BOOT button again to re-run test");
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

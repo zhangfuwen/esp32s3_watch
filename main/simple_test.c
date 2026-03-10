@@ -12,6 +12,11 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_types.h"
 #include "esp_lcd_panel_vendor.h"
+
+// Helper function to send command
+static void lcd_cmd(esp_lcd_panel_io_handle_t io, uint8_t cmd, const uint8_t *data, int len) {
+    esp_lcd_panel_io_tx_param(io, cmd, data, len);
+}
 #include "lvgl.h"
 
 static const char *TAG = "SIMPLE_TEST";
@@ -54,14 +59,16 @@ esp_err_t simple_test_run(void) {
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
     ESP_LOGI(TAG, "Init OK");
     
-    // Set offset/gap
+    // Set display window to full screen (0, 0, 240, 284)
     ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, 0, 0));
-    ESP_LOGI(TAG, "Offset OK");
+    ESP_LOGI(TAG, "Gap set to (0, 0)");
     
-    // Swap/Mirror
+    // Try different MADCTL settings
+    // ST7789 with 240x284 resolution may need specific settings
+    ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
     ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, false));
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, false, false));
-    ESP_LOGI(TAG, "Swap/Mirror OK");
+    ESP_LOGI(TAG, "Display config OK");
     
     // Backlight
     gpio_config_t bl_conf = {
@@ -81,6 +88,19 @@ esp_err_t simple_test_run(void) {
     
     // Draw test pattern
     ESP_LOGI(TAG, "Drawing test pattern...");
+    
+    // Set display window explicitly using ST7789 commands
+    // CASET (Column Address Set) - 0x2A
+    uint8_t caset[4] = {0, 0, 0, 239};  // x1=0, x2=239 (240 pixels)
+    esp_lcd_panel_io_tx_param(panel_io, 0x2A, caset, 4);
+    
+    // RASET (Row Address Set) - 0x2B
+    uint8_t raset[4] = {0, 0, 1, 27};  // y1=0, y2=283 (284 pixels = 0x011B)
+    raset[2] = (284 >> 8) & 0xFF;
+    raset[3] = 284 & 0xFF;
+    esp_lcd_panel_io_tx_param(panel_io, 0x2B, raset, 4);
+    
+    ESP_LOGI(TAG, "Display window set: 240x284");
     
     // Fill screen with RED (full 240x284)
     uint16_t red = 0xF800;
