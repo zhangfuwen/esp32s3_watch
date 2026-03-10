@@ -243,8 +243,9 @@ void watch_face_init(void) {
     
     // Battery icon (text)
     lv_obj_t *bat_icon = lv_label_create(battery_container);
-    lv_label_set_text(bat_icon, "🔋");
+    lv_label_set_text(bat_icon, "BAT");
     lv_obj_set_style_text_font(bat_icon, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(bat_icon, COLOR_BATTERY, 0);
     
     // Battery bar
     battery_bar = lv_bar_create(battery_container);
