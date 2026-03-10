@@ -32,6 +32,7 @@
 #include "battery_driver.h"
 #include "motion_detect.h"
 #include "watch_face_ui.h"
+#include "ble_notify.h"
 
 static const char *TAG = "WATCH";
 
@@ -79,6 +80,15 @@ static esp_err_t init_lvgl_display(void)
 
     ESP_LOGI(TAG, "LVGL display registered: %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     return ESP_OK;
+}
+
+/**
+ * @brief BLE notification callback
+ */
+static void ble_notify_callback(const char *message, uint8_t len) {
+    ESP_LOGI(TAG, "BLE notification received: %.*s", len, message);
+    // Show notification on watch face or trigger vibration
+    power_manager_user_activity();
 }
 
 /**
@@ -199,6 +209,16 @@ static esp_err_t init_hardware(void) {
     test_menu_init();
     ESP_LOGI(TAG, "Test menu initialized (hidden)");
     
+    // Initialize BLE notification service
+    ESP_LOGI(TAG, "Initializing BLE notification service...");
+    esp_err_t ble_ret = ble_notify_init(ble_notify_callback);
+    if (ble_ret == ESP_OK) {
+        ble_notify_start_advertising();
+        ESP_LOGI(TAG, "BLE advertising started: %s", BLE_DEVICE_NAME);
+    } else {
+        ESP_LOGW(TAG, "BLE init failed: %s", esp_err_to_name(ble_ret));
+    }
+    
     return ESP_OK;
 }
 
@@ -207,7 +227,7 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 0.3.0 (Test Menu)");
+    ESP_LOGI(TAG, "Version: 1.2.0 (Watch Face + BLE)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware
