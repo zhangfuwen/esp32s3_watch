@@ -1,10 +1,8 @@
 /**
- * LVGL Porting Layer for ESP32-S3 Watch
+ * LVGL Porting Layer - OPTIMIZED
  * 
  * @file lvgl_port.c
- * @brief LVGL display and touch driver integration
- * @version 0.3.0
- * @date 2026-03-08
+ * @brief Optimized LVGL display driver
  */
 
 #include "lvgl_port.h"
@@ -28,48 +26,46 @@ static const char *TAG = "LVGL_PORT";
 static esp_lcd_panel_io_handle_t panel_io = NULL;
 static esp_lcd_panel_handle_t panel = NULL;
 
-// LVGL display buffer (smaller size for limited RAM)
-#define LVGL_BUF_SIZE (DISPLAY_WIDTH * 40)  // Smaller buffer
+// OPTIMIZED: Larger buffer for better performance
+#define LVGL_BUF_SIZE (DISPLAY_WIDTH * 80)  // 2x larger buffer
 static lv_disp_draw_buf_t disp_buf;
 static lv_color_t *buf1 = NULL;
 static lv_color_t *buf2 = NULL;
 
-// Display flush callback
+// Display flush callback - OPTIMIZED
 static void lvgl_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
-    uint32_t w = (area->x2 - area->x1 + 1);
-    uint32_t h = (area->y2 - area->y1 + 1);
-    
+    // Direct bitmap draw - LVGL handles partial updates automatically
     esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, color_p);
     
     lv_disp_flush_ready(disp);
 }
 
-// Initialize display driver for LVGL
+// Initialize display driver for LVGL - OPTIMIZED
 esp_err_t lvgl_display_init(void)
 {
     ESP_LOGI(TAG, "========================================");
-    ESP_LOGI(TAG, "LVGL Display Init %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    ESP_LOGI(TAG, "LVGL Display Init %dx%d (OPTIMIZED)", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     ESP_LOGI(TAG, "========================================");
     
-    // SPI bus
+    // SPI bus - OPTIMIZED: Higher speed
     const spi_bus_config_t buscfg = {
         .mosi_io_num = DISPLAY_MOSI_PIN,
         .sclk_io_num = DISPLAY_SCLK_PIN,
         .miso_io_num = -1,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
+        .max_transfer_sz = DISPLAY_WIDTH * 40 * sizeof(uint16_t),  // Larger transfers
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
-    ESP_LOGI(TAG, "SPI OK");
+    ESP_LOGI(TAG, "SPI OK (20MHz)");
     
-    // Panel IO
+    // Panel IO - OPTIMIZED: Higher clock speed
     const esp_lcd_panel_io_spi_config_t io_config = {
         .cs_gpio_num = DISPLAY_CS_PIN,
         .dc_gpio_num = DISPLAY_DC_PIN,
         .spi_mode = 0,
-        .pclk_hz = 10 * 1000 * 1000,
+        .pclk_hz = 20 * 1000 * 1000,  // 20MHz (up from 10MHz)
         .trans_queue_depth = 10,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
@@ -120,16 +116,16 @@ esp_err_t lvgl_display_init(void)
     ESP_LOGI(TAG, "Backlight ON");
     
     ESP_LOGI(TAG, "========================================");
-    ESP_LOGI(TAG, "LVGL Display Init Complete");
+    ESP_LOGI(TAG, "LVGL Display Init Complete (OPTIMIZED)");
     ESP_LOGI(TAG, "========================================");
     
     return ESP_OK;
 }
 
-// Initialize LVGL
+// Initialize LVGL - OPTIMIZED
 esp_err_t lvgl_init_system(void)
 {
-    ESP_LOGI(TAG, "LVGL System Init...");
+    ESP_LOGI(TAG, "LVGL System Init (OPTIMIZED)...");
     
     // First initialize display hardware
     ESP_LOGI(TAG, "Calling lvgl_display_init()...");
@@ -144,14 +140,15 @@ esp_err_t lvgl_init_system(void)
     lv_init();
     ESP_LOGI(TAG, "lv_init() OK");
     
-    // Allocate buffers
-    buf1 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
-    buf2 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    // Allocate buffers - OPTIMIZED: Use DMA capable memory
+    ESP_LOGI(TAG, "Allocating LVGL buffers: %d bytes each", LVGL_BUF_SIZE * sizeof(lv_color_t));
+    buf1 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
+    buf2 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
     
     if (!buf1 || !buf2) {
-        ESP_LOGW(TAG, "SPIRAM alloc failed, using DRAM");
-        buf1 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
-        buf2 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
+        ESP_LOGE(TAG, "DMA buffer alloc failed, trying DRAM");
+        buf1 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_INTERNAL);
+        buf2 = heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_INTERNAL);
     }
     
     if (!buf1 || !buf2) {
@@ -159,26 +156,33 @@ esp_err_t lvgl_init_system(void)
         return ESP_ERR_NO_MEM;
     }
     
-    ESP_LOGI(TAG, "Buffers allocated: %d bytes each", LVGL_BUF_SIZE * sizeof(lv_color_t));
+    ESP_LOGI(TAG, "Buffers allocated at: buf1=%p, buf2=%p", buf1, buf2);
     
     // Initialize draw buffer
     lv_disp_draw_buf_init(&disp_buf, buf1, buf2, LVGL_BUF_SIZE);
     
-    // Register display driver
+    // Register display driver - OPTIMIZED
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = DISPLAY_WIDTH;
     disp_drv.ver_res = DISPLAY_HEIGHT;
     disp_drv.flush_cb = lvgl_disp_flush;
     disp_drv.draw_buf = &disp_buf;
-    lv_disp_drv_register(&disp_drv);
     
-    ESP_LOGI(TAG, "LVGL Display Driver Registered");
+    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
+    
+    if (disp) {
+        ESP_LOGI(TAG, "LVGL Display Driver Registered (OPTIMIZED)");
+        ESP_LOGI(TAG, "Buffer size: %d pixels (%d bytes)", LVGL_BUF_SIZE, LVGL_BUF_SIZE * sizeof(lv_color_t));
+    } else {
+        ESP_LOGE(TAG, "Failed to register LVGL display driver");
+        return ESP_FAIL;
+    }
     
     return ESP_OK;
 }
 
-// LVGL tick task
+// LVGL tick task - OPTIMIZED: 10ms
 static void lvgl_tick_task(void *pvParameters)
 {
     while (1) {
@@ -187,27 +191,27 @@ static void lvgl_tick_task(void *pvParameters)
     }
 }
 
-// LVGL main task
+// LVGL main task - OPTIMIZED: 20ms (50 FPS)
 static void lvgl_main_task(void *pvParameters)
 {
     while (1) {
         lv_timer_handler();
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(20));  // 50 FPS instead of 20 FPS
     }
 }
 
-// Start LVGL tasks
+// Start LVGL tasks - OPTIMIZED
 esp_err_t lvgl_start_tasks(void)
 {
-    ESP_LOGI(TAG, "Starting LVGL tasks...");
+    ESP_LOGI(TAG, "Starting LVGL tasks (OPTIMIZED)...");
     
     // Create tick task
     xTaskCreate(lvgl_tick_task, "lvgl_tick", 4096, NULL, 5, NULL);
     
-    // Create main task
-    xTaskCreate(lvgl_main_task, "lvgl_main", 8192, NULL, 5, NULL);
+    // Create main task - OPTIMIZED: Higher priority
+    xTaskCreate(lvgl_main_task, "lvgl_main", 8192, NULL, 6, NULL);
     
-    ESP_LOGI(TAG, "LVGL tasks started");
+    ESP_LOGI(TAG, "LVGL tasks started (50 FPS)");
     
     return ESP_OK;
 }

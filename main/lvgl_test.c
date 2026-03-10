@@ -1,6 +1,6 @@
 /**
  * @file lvgl_test.c
- * @brief Clear LVGL Test UI - High Contrast, Large Fonts
+ * @brief Optimized Clear UI - Minimal Redraw
  */
 
 #include "lvgl_test.h"
@@ -17,10 +17,9 @@ static const char *TAG = "LVGL_TEST";
 
 static lv_obj_t *time_label = NULL;
 static lv_obj_t *date_label = NULL;
-static lv_obj_t *battery_label = NULL;
 static lv_obj_t *status_label = NULL;
 
-// Update time every second
+// Update time every second - OPTIMIZED: Only update changed labels
 static void update_time(void) {
     if (!time_label || !date_label) return;
     
@@ -29,29 +28,36 @@ static void update_time(void) {
     time(&now);
     localtime_r(&now, &timeinfo);
     
+    // Only update time label (seconds change)
     char time_str[32];
-    char date_str[32];
-    
     snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", 
              timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-    snprintf(date_str, sizeof(date_str), "%d-%02d-%02d",
-             timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
-    
     lv_label_set_text(time_label, time_str);
-    lv_label_set_text(date_label, date_str);
+    
+    // Only update date once per minute
+    static int last_min = -1;
+    if (timeinfo.tm_min != last_min) {
+        last_min = timeinfo.tm_min;
+        char date_str[32];
+        snprintf(date_str, sizeof(date_str), "%d-%02d-%02d",
+                 timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+        lv_label_set_text(date_label, date_str);
+    }
 }
 
-// Timer callback - update every second
+// Timer callback - OPTIMIZED: 1 second interval
 static void timer_cb(lv_timer_t *timer) {
     update_time();
     
-    // Update status
+    // Update status every 5 seconds (reduce redraws)
     static uint32_t counter = 0;
     counter++;
-    char status_str[64];
-    snprintf(status_str, sizeof(status_str), "UP: %" PRIu32 "s | HEAP: %" PRIu32 "KB", 
-             counter, (uint32_t)(esp_get_free_heap_size() / 1024));
-    lv_label_set_text(status_label, status_str);
+    if (counter % 5 == 0) {
+        char status_str[64];
+        snprintf(status_str, sizeof(status_str), "UP: %" PRIu32 "s | HEAP: %" PRIu32 "KB", 
+                 counter, (uint32_t)(esp_get_free_heap_size() / 1024));
+        lv_label_set_text(status_label, status_str);
+    }
 }
 
 esp_err_t lvgl_test_init(void) {
@@ -60,15 +66,15 @@ esp_err_t lvgl_test_init(void) {
 }
 
 esp_err_t lvgl_test_run(void) {
-    ESP_LOGI(TAG, "=== LVGL Clear Test Starting ===");
+    ESP_LOGI(TAG, "=== LVGL Optimized Test Starting ===");
     
-    // Create main screen with BLACK background (highest contrast)
+    // Create main screen with BLACK background
     lv_obj_t *scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
     lv_scr_load(scr);
     
-    // Title - WHITE, LARGE
+    // Title - WHITE, SIMPLE
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "ESP32-S3 WATCH");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
@@ -85,16 +91,16 @@ esp_err_t lvgl_test_run(void) {
     lv_obj_set_style_line_color(line1, lv_color_white(), 0);
     lv_obj_set_style_line_width(line1, 2, 0);
     
-    // Time label - VERY LARGE, BRIGHT YELLOW
+    // Time label - LARGE, BRIGHT YELLOW
     time_label = lv_label_create(scr);
     lv_label_set_text(time_label, "12:30:00");
-    lv_obj_set_style_text_color(time_label, lv_color_hex(0xFFFF00), 0);  // Bright yellow
+    lv_obj_set_style_text_color(time_label, lv_color_hex(0xFFFF00), 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -20);
     
     // Date label - LARGE, CYAN
     date_label = lv_label_create(scr);
     lv_label_set_text(date_label, "2026-03-10");
-    lv_obj_set_style_text_color(date_label, lv_color_hex(0x00FFFF), 0);  // Cyan
+    lv_obj_set_style_text_color(date_label, lv_color_hex(0x00FFFF), 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 25);
     
     // Separator line
@@ -108,22 +114,22 @@ esp_err_t lvgl_test_run(void) {
     lv_obj_set_style_line_color(line2, lv_color_white(), 0);
     lv_obj_set_style_line_width(line2, 2, 0);
     
-    // Battery - LARGE, GREEN
-    battery_label = lv_label_create(scr);
-    lv_label_set_text(battery_label, "[BATTERY] 75%");
-    lv_obj_set_style_text_color(battery_label, lv_color_hex(0x00FF00), 0);  // Bright green
+    // Battery - SIMPLE TEXT, GREEN
+    lv_obj_t *battery_label = lv_label_create(scr);
+    lv_label_set_text(battery_label, "BATTERY: 75%");
+    lv_obj_set_style_text_color(battery_label, lv_color_hex(0x00FF00), 0);
     lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 120);
     
-    // Status - WHITE
+    // Status - WHITE, BOTTOM
     status_label = lv_label_create(scr);
     lv_label_set_text(status_label, "UP: 0s | HEAP: 0KB");
     lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
     lv_obj_align(status_label, LV_ALIGN_BOTTOM_MID, 0, -5);
     
-    ESP_LOGI(TAG, "LVGL clear test screen created");
+    ESP_LOGI(TAG, "LVGL optimized screen created");
     ESP_LOGI(TAG, "Screen size: %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     
-    // Start timer (1 second)
+    // Start timer (1 second) - OPTIMIZED
     lv_timer_create(timer_cb, 1000, NULL);
     
     // Initial update
