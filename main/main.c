@@ -27,6 +27,7 @@
 #include "power_manager.h"
 #include "display_driver.h"
 #include "display.h"
+#include "display_test.h"
 #include "test_menu.h"
 #include "touch_driver.h"
 #include "battery_driver.h"
@@ -200,28 +201,14 @@ static esp_err_t init_hardware(void) {
     ESP_LOGI(TAG, "Initializing motion detection...");
     motion_detect_init();
     
+    // Run simple display test (NO LVGL)
+    ESP_LOGI(TAG, "Running display test (colored stripes)...");
+    display_test_run();
+    ESP_LOGI(TAG, "Display test complete - check screen!");
+    
     // Initialize test menu first (but don't show it)
     ESP_LOGI(TAG, "Initializing test menu (background)...");
     test_menu_init();
-    
-    // Simple LVGL test - create a label directly
-    ESP_LOGI(TAG, "Creating LVGL test screen...");
-    lv_obj_t *scr = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(scr, lv_color_make(0, 0, 50), 0);  // Dark blue background
-    
-    lv_obj_t *label = lv_label_create(scr);
-    lv_label_set_text(label, "LVGL Test\n10:07");
-    lv_obj_set_style_text_color(label, lv_color_white(), 0);
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    
-    lv_obj_t *btn = lv_btn_create(scr);
-    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -20);
-    lv_obj_t *btn_label = lv_label_create(btn);
-    lv_label_set_text(btn_label, "Button");
-    
-    lv_scr_load(scr);
-    lv_task_handler();  // Process LVGL tasks immediately
-    ESP_LOGI(TAG, "LVGL test screen displayed");
     
     // Initialize watch face UI (DISABLED FOR NOW)
     // ESP_LOGI(TAG, "Initializing watch face UI...");
@@ -258,7 +245,7 @@ static esp_err_t init_hardware(void) {
  */
 void app_main(void) {
     ESP_LOGI(TAG, "=== ESP32-S3 Watch Starting ===");
-    ESP_LOGI(TAG, "Version: 1.4.0 (LVGL Test)");
+    ESP_LOGI(TAG, "Version: 1.5.0 (SPI Display Test)");
     ESP_LOGI(TAG, "Build Date: %s %s", __DATE__, __TIME__);
     
     // Initialize hardware

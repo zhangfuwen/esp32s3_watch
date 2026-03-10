@@ -3,6 +3,7 @@ idf_component_register(
     SRCS 
         "main.c"
         "display.c"
+        "display_test.c"
         "watch_face.c"
         "input.c"
         "wifi.c"
