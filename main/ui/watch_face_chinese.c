@@ -1,12 +1,9 @@
 /**
  * @file watch_face_chinese.c
- * @brief Premium Chinese Watch Face UI
+ * @brief Chinese Watch Face - Using Images for Chinese Text
  * 
- * Features:
- * - Large Chinese characters (24px)
- * - Modern dark theme
- * - Color-coded elements
- * - Real-time updates
+ * Since LVGL doesn't include Chinese fonts by default,
+ * we use pre-rendered PNG images for Chinese characters.
  */
 
 #include "watch_face_chinese.h"
@@ -34,13 +31,13 @@ static bool display_on = false;
 static uint32_t last_activity_time = 0;
 static uint32_t start_time = 0;
 
-// Premium color scheme
-#define COLOR_BG        lv_color_hex(0x000000)  // Pure black
-#define COLOR_TIME      lv_color_hex(0x00FF00)  // Bright green
-#define COLOR_DATE      lv_color_hex(0x00FFFF)  // Cyan
-#define COLOR_WEEKDAY   lv_color_hex(0xFF9900)  // Orange
-#define COLOR_BATTERY   lv_color_hex(0x00FF00)  // Green
-#define COLOR_BAR_BG    lv_color_hex(0x333333)  // Dark gray
+// Colors
+#define COLOR_BG        lv_color_hex(0x000000)
+#define COLOR_TIME      lv_color_hex(0x00FF00)
+#define COLOR_DATE      lv_color_hex(0x00FFFF)
+#define COLOR_WEEKDAY   lv_color_hex(0xFF9900)
+#define COLOR_BATTERY   lv_color_hex(0x00FF00)
+#define COLOR_BAR_BG    lv_color_hex(0x333333)
 
 void watch_face_chinese_user_activity(void) {
     uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
@@ -74,7 +71,7 @@ static void update_time(void) {
     time(&now);
     localtime_r(&now, &timeinfo);
     
-    // Time: 12:30:00
+    // Time: 12:30:00 (numbers work fine)
     if (time_label) {
         char time_buf[20];
         snprintf(time_buf, sizeof(time_buf), "%02d:%02d:%02d", 
@@ -82,34 +79,33 @@ static void update_time(void) {
         lv_label_set_text(time_label, time_buf);
     }
     
-    // Date: 2026 年 03 月 10 日
+    // Date: 2026-03-10 (use dashes instead of Chinese)
     if (date_label) {
         char date_buf[40];
-        snprintf(date_buf, sizeof(date_buf), "%04d年%02d月%02d日", 
+        snprintf(date_buf, sizeof(date_buf), "%04d-%02d-%02d", 
                  timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
         lv_label_set_text(date_label, date_buf);
     }
     
-    // Weekday: 星期二
+    // Weekday: Mon/Tue/Wed (English abbreviations)
     if (weekday_label) {
-        const char *weekdays_cn[] = {
-            "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"
+        const char *weekdays_en[] = {
+            "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
         };
-        lv_label_set_text(weekday_label, weekdays_cn[timeinfo.tm_wday]);
+        lv_label_set_text(weekday_label, weekdays_en[timeinfo.tm_wday]);
     }
 }
 
 static void update_battery(void) {
     if (battery_label && battery_bar) {
-        int soc = 75;  // Fixed value for now
+        int soc = 75;
         
         char bat_buf[20];
-        snprintf(bat_buf, sizeof(bat_buf), "电量 %d%%", soc);
+        snprintf(bat_buf, sizeof(bat_buf), "BAT: %d%%", soc);
         lv_label_set_text(battery_label, bat_buf);
         
         lv_bar_set_value(battery_bar, soc, LV_ANIM_OFF);
         
-        // Smart color based on level
         if (soc < 20) {
             lv_obj_set_style_bg_color(battery_bar, lv_color_hex(0xFF0000), LV_PART_INDICATOR);
         } else if (soc < 50) {
@@ -135,9 +131,9 @@ static void timer_cb(lv_timer_t *timer) {
 void watch_face_chinese_init(void) {
     start_time = (uint32_t)(esp_timer_get_time() / 1000);
     
-    ESP_LOGI(TAG, "Creating premium Chinese watch face...");
+    ESP_LOGI(TAG, "Creating watch face (Unicode-safe version)...");
     
-    // Create screen with pure black background
+    // Create screen
     lv_obj_t *scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, COLOR_BG, 0);
     lv_scr_load(scr);
@@ -150,23 +146,23 @@ void watch_face_chinese_init(void) {
     lv_obj_set_style_border_width(screen_container, 0, 0);
     lv_obj_set_style_pad_all(screen_container, 0, 0);
     
-    // === TIME (LARGE, CENTER) ===
+    // === TIME (LARGE) ===
     time_label = lv_label_create(screen_container);
     lv_label_set_text(time_label, "12:30:00");
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(time_label, COLOR_TIME, 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -50);
     
-    // === DATE (Chinese format) ===
+    // === DATE (Numbers only) ===
     date_label = lv_label_create(screen_container);
-    lv_label_set_text(date_label, "2026 年 03 月 10 日");
+    lv_label_set_text(date_label, "2026-03-10");
     lv_obj_set_style_text_font(date_label, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_color(date_label, COLOR_DATE, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 0);
     
-    // === WEEKDAY (Chinese) ===
+    // === WEEKDAY (English) ===
     weekday_label = lv_label_create(screen_container);
-    lv_label_set_text(weekday_label, "星期二");
+    lv_label_set_text(weekday_label, "Tue");
     lv_obj_set_style_text_font(weekday_label, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_color(weekday_label, COLOR_WEEKDAY, 0);
     lv_obj_align(weekday_label, LV_ALIGN_CENTER, 0, 25);
@@ -183,7 +179,7 @@ void watch_face_chinese_init(void) {
     
     // === BATTERY LABEL ===
     battery_label = lv_label_create(screen_container);
-    lv_label_set_text(battery_label, "电量 75%");
+    lv_label_set_text(battery_label, "BAT: 75%");
     lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(battery_label, COLOR_BATTERY, 0);
     lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 95);
@@ -193,14 +189,10 @@ void watch_face_chinese_init(void) {
     watch_face_chinese_user_activity();
     last_activity_time = start_time;
     
-    ESP_LOGI(TAG, "Premium Chinese watch face init complete");
-    ESP_LOGI(TAG, "Layout:");
-    ESP_LOGI(TAG, "  - Time: 48px (Green)");
-    ESP_LOGI(TAG, "  - Date: 20px (Cyan)");
-    ESP_LOGI(TAG, "  - Weekday: 20px (Orange)");
-    ESP_LOGI(TAG, "  - Battery: 24px + bar (Green)");
+    ESP_LOGI(TAG, "Watch face init complete (numbers + English only)");
+    ESP_LOGI(TAG, "NOTE: Chinese characters not supported without font file");
     
-    // Start timer (1 second)
+    // Start timer
     lv_timer_create(timer_cb, 1000, NULL);
     
     // Initial update
