@@ -27,7 +27,7 @@ static esp_lcd_panel_io_handle_t panel_io = NULL;
 static esp_lcd_panel_handle_t panel = NULL;
 
 // OPTIMIZED: Larger buffer for better performance
-#define LVGL_BUF_SIZE (DISPLAY_WIDTH * 80)  // 2x larger buffer
+#define LVGL_BUF_SIZE (DISPLAY_WIDTH * DISPLAY_HEIGHT / 2)  // Half screen buffer
 static lv_disp_draw_buf_t disp_buf;
 static lv_color_t *buf1 = NULL;
 static lv_color_t *buf2 = NULL;
