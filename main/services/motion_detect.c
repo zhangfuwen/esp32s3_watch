@@ -7,8 +7,12 @@
 #include "imu_driver.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include <inttypes.h>
 #include <math.h>
 #include <string.h>
+
+// Forward declaration
+extern void lvgl_test_user_activity(void);
 
 static const char *TAG = "MOTION";
 
@@ -73,11 +77,17 @@ bool motion_detect_check_wrist_wake(void) {
     if (acc_mg > MOTION_DETECT_THRESHOLD_MG) {
         int64_t now = esp_timer_get_time() / 1000;  // ms
         
-        // Debounce: only trigger once per second
-        if (now - s_motion.last_wake_time > 1000) {
+        // Debounce: only trigger once per 2 seconds
+        if (now - s_motion.last_wake_time > 2000) {
             s_motion.last_wake_time = now;
             s_motion.wake_count++;
-            ESP_LOGI(TAG, "Wrist wake detected! (acc=%.0f mg, count=%lu)", acc_mg, s_motion.wake_count);
+            ESP_LOGI(TAG, "Wrist wake detected! (acc=%.0f mg, count=%" PRIu32 ")", acc_mg, s_motion.wake_count);
+            
+            // Turn on display
+            #ifdef CONFIG_LVGL_TEST_ENABLED
+            lvgl_test_user_activity();
+            #endif
+            
             return true;
         }
     }

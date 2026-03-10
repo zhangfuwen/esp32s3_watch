@@ -5,5 +5,6 @@
 
 esp_err_t lvgl_test_init(void);
 esp_err_t lvgl_test_run(void);
+void lvgl_test_user_activity(void);
 
 #endif

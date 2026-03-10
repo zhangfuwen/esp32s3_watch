@@ -214,22 +214,21 @@ void app_main(void) {
     
     ESP_LOGI(TAG, "=== System Ready ===");
     ESP_LOGI(TAG, "LVGL test screen should be visible");
-    ESP_LOGI(TAG, "Press BOOT button to run simple test...");
+    ESP_LOGI(TAG, "Features: Large Font + Wrist Wake + Auto Sleep");
+    ESP_LOGI(TAG, "Press BOOT button or raise wrist to wake...");
     
-    // Wait for BOOT button press
+    // Main loop - check buttons and motion
     while (1) {
+        // Check BOOT button (manual wake)
         if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
-            ESP_LOGI(TAG, "BOOT button pressed!");
             vTaskDelay(pdMS_TO_TICKS(50));  // Debounce
-            
-            // Confirm button press
             if (gpio_get_level(BOOT_BUTTON_GPIO) == 0) {
-                ESP_LOGI(TAG, "Running simple display test...");
-                simple_test_run();
-                ESP_LOGI(TAG, "Display test complete!");
-                ESP_LOGI(TAG, "Press BOOT button again to re-run test");
+                ESP_LOGI(TAG, "BOOT button pressed!");
+                lvgl_test_user_activity();
+                vTaskDelay(pdMS_TO_TICKS(200));  // Wait for release
             }
         }
+        
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
