@@ -1,6 +1,6 @@
 /**
  * @file simple_test.c
- * @brief Simple Display Test - Minimal LVGL
+ * @brief Simple Display Test - Following working reference code
  */
 
 #include "simple_test.h"
@@ -13,11 +13,10 @@
 #include "esp_lcd_types.h"
 #include "esp_lcd_panel_vendor.h"
 
-// Helper function to send command
-static void lcd_cmd(esp_lcd_panel_io_handle_t io, uint8_t cmd, const uint8_t *data, int len) {
-    esp_lcd_panel_io_tx_param(io, cmd, data, len);
+// Helper to send command (for debugging if needed)
+static inline void lcd_cmd(esp_lcd_panel_io_handle_t io, uint8_t cmd, const void *data, size_t data_bytes) {
+    esp_lcd_panel_io_tx_param(io, cmd, data, data_bytes);
 }
-#include "lvgl.h"
 
 static const char *TAG = "SIMPLE_TEST";
 
@@ -27,8 +26,19 @@ static esp_lcd_panel_handle_t panel = NULL;
 esp_err_t simple_test_run(void) {
     ESP_LOGI(TAG, "=== Simple Display Test ===");
     
-    // Use existing SPI bus (initialized by display_driver)
-    // Create panel IO directly
+    // SPI bus
+    const spi_bus_config_t buscfg = {
+        .mosi_io_num = DISPLAY_MOSI_PIN,
+        .sclk_io_num = DISPLAY_SCLK_PIN,
+        .miso_io_num = -1,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
+    };
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
+    ESP_LOGI(TAG, "SPI OK");
+    
+    // Panel IO
     const esp_lcd_panel_io_spi_config_t io_config = {
         .cs_gpio_num = DISPLAY_CS_PIN,
         .dc_gpio_num = DISPLAY_DC_PIN,
@@ -41,11 +51,11 @@ esp_err_t simple_test_run(void) {
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &panel_io));
     ESP_LOGI(TAG, "IO OK");
     
-    // Panel
+    // Panel - EXACTLY like reference code
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = DISPLAY_RESET_PIN,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,  // ST7789 uses RGB, not BGR
-        .bits_per_pixel = 16,  // RGB565
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,  // Reference uses BGR
+        .bits_per_pixel = 16,
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel));
     ESP_LOGI(TAG, "Panel OK");
@@ -59,16 +69,17 @@ esp_err_t simple_test_run(void) {
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
     ESP_LOGI(TAG, "Init OK");
     
-    // Set display window to full screen (0, 0, 240, 284)
-    ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, 0, 0));
-    ESP_LOGI(TAG, "Gap set to (0, 0)");
+    // Set offset - EXACTLY like reference code
+    ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y));
+    ESP_LOGI(TAG, "Offset OK: (%d, %d)", DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y);
     
-    // Try different MADCTL settings
-    // ST7789 with 240x284 resolution may need specific settings
+    // Invert - EXACTLY like reference code
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
-    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, false));
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, false, false));
-    ESP_LOGI(TAG, "Display config OK");
+    ESP_LOGI(TAG, "Invert OK");
+    
+    // Display ON - EXACTLY like reference code
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
+    ESP_LOGI(TAG, "Display ON");
     
     // Backlight
     gpio_config_t bl_conf = {
@@ -82,29 +93,12 @@ esp_err_t simple_test_run(void) {
     gpio_set_level(DISPLAY_BACKLIGHT_PIN, 1);
     ESP_LOGI(TAG, "Backlight ON");
     
-    // Display ON
-    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
-    ESP_LOGI(TAG, "Display ON");
-    
     // Draw test pattern
     ESP_LOGI(TAG, "Drawing test pattern...");
     
-    // Set display window explicitly using ST7789 commands
-    // CASET (Column Address Set) - 0x2A
-    uint8_t caset[4] = {0, 0, 0, 239};  // x1=0, x2=239 (240 pixels)
-    esp_lcd_panel_io_tx_param(panel_io, 0x2A, caset, 4);
-    
-    // RASET (Row Address Set) - 0x2B
-    uint8_t raset[4] = {0, 0, 1, 27};  // y1=0, y2=283 (284 pixels = 0x011B)
-    raset[2] = (284 >> 8) & 0xFF;
-    raset[3] = 284 & 0xFF;
-    esp_lcd_panel_io_tx_param(panel_io, 0x2B, raset, 4);
-    
-    ESP_LOGI(TAG, "Display window set: 240x284");
-    
     // Fill screen with RED (full 240x284)
     uint16_t red = 0xF800;
-    ESP_LOGI(TAG, "Drawing RED: 240x284");
+    ESP_LOGI(TAG, "Drawing RED: %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     for (int y = 0; y < DISPLAY_HEIGHT; y++) {
         esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, &red);
     }
@@ -114,7 +108,7 @@ esp_err_t simple_test_run(void) {
     
     // Fill screen with GREEN
     uint16_t green = 0x07E0;
-    ESP_LOGI(TAG, "Drawing GREEN: 240x284");
+    ESP_LOGI(TAG, "Drawing GREEN: %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     for (int y = 0; y < DISPLAY_HEIGHT; y++) {
         esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, &green);
     }
@@ -124,7 +118,7 @@ esp_err_t simple_test_run(void) {
     
     // Fill screen with BLUE
     uint16_t blue = 0x001F;
-    ESP_LOGI(TAG, "Drawing BLUE: 240x284");
+    ESP_LOGI(TAG, "Drawing BLUE: %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     for (int y = 0; y < DISPLAY_HEIGHT; y++) {
         esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, &blue);
     }
