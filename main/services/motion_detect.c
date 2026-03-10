@@ -23,6 +23,10 @@ static struct {
     float last_acc_z;
     int64_t last_wake_time;
     uint32_t wake_count;
+    int64_t last_update_time;
+    float acc_velocity_x;  // Accumulated change
+    float acc_velocity_y;
+    float acc_velocity_z;
 } s_motion = {0};
 
 esp_err_t motion_detect_init(void) {
@@ -52,9 +56,39 @@ void motion_detect_update(imu_data_t *data) {
         return;
     }
     
+    int64_t now = esp_timer_get_time() / 1000;  // ms
+    
+    // Calculate delta (change in acceleration)
+    float delta_x = data->x - s_motion.last_acc_x;
+    float delta_y = data->y - s_motion.last_acc_y;
+    float delta_z = data->z - s_motion.last_acc_z;
+    
+    // Calculate delta magnitude in mg
+    float delta_mag = sqrtf(delta_x * delta_x + delta_y * delta_y + delta_z * delta_z) * 1000.0f;
+    
+    // Accumulate velocity (simple integration)
+    s_motion.acc_velocity_x += delta_x;
+    s_motion.acc_velocity_y += delta_y;
+    s_motion.acc_velocity_z += delta_z;
+    
+    // Decay velocity (damping)
+    s_motion.acc_velocity_x *= 0.9f;
+    s_motion.acc_velocity_y *= 0.9f;
+    s_motion.acc_velocity_z *= 0.9f;
+    
+    // Store current values
     s_motion.last_acc_x = data->x;
     s_motion.last_acc_y = data->y;
     s_motion.last_acc_z = data->z;
+    s_motion.last_update_time = now;
+    
+    // Log occasionally
+    static uint32_t log_count = 0;
+    log_count++;
+    if (log_count % 500 == 0) {
+        ESP_LOGD(TAG, "Acc: x=%.2f y=%.2f z=%.2f (g), delta=%.0f mg", 
+                 data->x, data->y, data->z, delta_mag);
+    }
 }
 
 bool motion_detect_check_wrist_wake(void) {
@@ -62,26 +96,25 @@ bool motion_detect_check_wrist_wake(void) {
         return false;
     }
     
-    // Simple threshold-based detection
-    // Calculate acceleration magnitude (data is already in g units)
-    float acc_mag = sqrtf(
-        s_motion.last_acc_x * s_motion.last_acc_x +
-        s_motion.last_acc_y * s_motion.last_acc_y +
-        s_motion.last_acc_z * s_motion.last_acc_z
+    // Calculate velocity magnitude
+    float velocity_mag = sqrtf(
+        s_motion.acc_velocity_x * s_motion.acc_velocity_x +
+        s_motion.acc_velocity_y * s_motion.acc_velocity_y +
+        s_motion.acc_velocity_z * s_motion.acc_velocity_z
     );
     
     // Convert to mg
-    float acc_mg = acc_mag * 1000.0f;
+    float velocity_mg = velocity_mag * 1000.0f;
     
-    // Check if exceeds threshold
-    if (acc_mg > MOTION_DETECT_THRESHOLD_MG) {
+    // Check if exceeds threshold (lowered to 300mg for better sensitivity)
+    if (velocity_mg > 300.0f) {
         int64_t now = esp_timer_get_time() / 1000;  // ms
         
         // Debounce: only trigger once per 2 seconds
         if (now - s_motion.last_wake_time > 2000) {
             s_motion.last_wake_time = now;
             s_motion.wake_count++;
-            ESP_LOGI(TAG, "Wrist wake detected! (acc=%.0f mg, count=%" PRIu32 ")", acc_mg, s_motion.wake_count);
+            ESP_LOGI(TAG, "Wrist wake! vel=%.0f mg (count=%" PRIu32 ")", velocity_mg, s_motion.wake_count);
             
             // Turn on display
             #ifdef CONFIG_LVGL_TEST_ENABLED
