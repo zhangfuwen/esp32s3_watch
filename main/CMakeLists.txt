@@ -19,6 +19,7 @@ idf_component_register(
         "drivers/display_driver.c"
         "drivers/imu_driver.c"
         "drivers/touch_driver.c"
+        "drivers/battery_driver.c"
         # Services
         "services/time_service.c"
     INCLUDE_DIRS 

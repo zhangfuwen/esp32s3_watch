@@ -29,6 +29,7 @@
 #include "display.h"
 #include "test_menu.h"
 #include "touch_driver.h"
+#include "battery_driver.h"
 
 static const char *TAG = "WATCH";
 
@@ -162,6 +163,19 @@ static esp_err_t init_hardware(void) {
         touch_driver_register_lvgl(&indev_drv, &g_touch_driver);
     } else {
         ESP_LOGW(TAG, "Touch driver init failed: %s, continuing without touch", esp_err_to_name(touch_ret));
+    }
+    
+    // Initialize battery driver
+    ESP_LOGI(TAG, "Initializing battery driver...");
+    esp_err_t batt_ret = battery_driver_init(&g_battery_driver, I2C_NUM_0, 0x36);
+    if (batt_ret == ESP_OK) {
+        uint8_t soc = 0;
+        uint16_t voltage = 0;
+        battery_driver_get_soc(&g_battery_driver, &soc);
+        battery_driver_get_voltage(&g_battery_driver, &voltage);
+        ESP_LOGI(TAG, "Battery: %d%%, %d mV", soc, voltage);
+    } else {
+        ESP_LOGW(TAG, "Battery driver init failed: %s, continuing without battery", esp_err_to_name(batt_ret));
     }
     
     // Initialize test menu
