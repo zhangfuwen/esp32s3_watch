@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "esp32_s3_watch",
-    "project_version":    "v0.2.0-55-g1c3dc3a-dirty",
+    "project_version":    "v0.2.0-56-g15a5809-dirty",
     "project_path":       "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch",
     "idf_path":           "/Users/zhangfuwen/esp/esp-idf",
     "build_dir":          "/Users/zhangfuwen/.openclaw/workspace-esp32_watch_coder/watch/build",

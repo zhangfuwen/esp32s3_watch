@@ -21,19 +21,8 @@ static esp_lcd_panel_handle_t panel = NULL;
 esp_err_t simple_test_run(void) {
     ESP_LOGI(TAG, "=== Simple Display Test ===");
     
-    // SPI bus
-    const spi_bus_config_t buscfg = {
-        .mosi_io_num = DISPLAY_MOSI_PIN,
-        .sclk_io_num = DISPLAY_SCLK_PIN,
-        .miso_io_num = -1,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-        .max_transfer_sz = DISPLAY_WIDTH * 20 * sizeof(uint16_t),
-    };
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
-    ESP_LOGI(TAG, "SPI OK");
-    
-    // Panel IO
+    // Use existing SPI bus (initialized by display_driver)
+    // Create panel IO directly
     const esp_lcd_panel_io_spi_config_t io_config = {
         .cs_gpio_num = DISPLAY_CS_PIN,
         .dc_gpio_num = DISPLAY_DC_PIN,
