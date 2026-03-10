@@ -10,6 +10,7 @@
 #include "driver/gpio.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
+#include "esp_lcd_types.h"
 #include "esp_lcd_panel_vendor.h"
 #include "lvgl.h"
 
@@ -38,10 +39,8 @@ esp_err_t simple_test_run(void) {
     // Panel
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = DISPLAY_RESET_PIN,
-        .flags = {
-            .reset_active_high = 0,
-        },
-        .vendor_config = NULL,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,  // ST7789 uses RGB, not BGR
+        .bits_per_pixel = 16,  // RGB565
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel));
     ESP_LOGI(TAG, "Panel OK");
