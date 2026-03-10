@@ -130,7 +130,13 @@ void watch_face_chinese_init(void) {
     start_time = (uint32_t)(esp_timer_get_time() / 1000);
     
     ESP_LOGI(TAG, "Creating Chinese watch face...");
-    ESP_LOGI(TAG, "Chinese font: chinese_16 (25 chars, 9.3KB)");
+    ESP_LOGI(TAG, "LVGL version: %d.%d.%d", LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
+    ESP_LOGI(TAG, "Chinese font: chinese_16");
+    ESP_LOGI(TAG, "Font line_height: %d", chinese_16.line_height);
+    ESP_LOGI(TAG, "Font base_line: %d", chinese_16.base_line);
+    ESP_LOGI(TAG, "Font dsc: %p", chinese_16.dsc);
+    ESP_LOGI(TAG, "Font get_glyph_dsc: %p", chinese_16.get_glyph_dsc);
+    ESP_LOGI(TAG, "Font get_glyph_bitmap: %p", chinese_16.get_glyph_bitmap);
     
     // Create screen
     lv_obj_t *scr = lv_obj_create(NULL);
