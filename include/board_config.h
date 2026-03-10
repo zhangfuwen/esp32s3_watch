@@ -78,6 +78,11 @@
 #define I2C_MASTER_FREQ_HZ          400000
 #define I2C_MASTER_TX_BUF_DISABLE   0
 #define I2C_MASTER_RX_BUF_DISABLE   0
+#define I2C_MASTER_TX_BUF_DISABLE   0
+
+// I2C GPIO pins (shared with audio codec)
+#define I2C_MASTER_SDA_IO           AUDIO_CODEC_I2C_SDA_PIN  // GPIO 1
+#define I2C_MASTER_SCL_IO           AUDIO_CODEC_I2C_SCL_PIN  // GPIO 2
 
 //==================== Power Management ====================
 // TODO: Add ADC pin for battery voltage monitoring
