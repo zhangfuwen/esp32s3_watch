@@ -147,7 +147,7 @@ esp_err_t lvgl_test_run(void) {
     lv_obj_t *title = lv_label_create(screen_container);
     lv_label_set_text(title, "ESP32-S3 WATCH");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
-    lv_obj_set_style_text_font(title, LV_FONT_DEFAULT, 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_48, 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 5);
     
     // Separator line
@@ -165,12 +165,14 @@ esp_err_t lvgl_test_run(void) {
     time_label = lv_label_create(screen_container);
     lv_label_set_text(time_label, "12:30:00");
     lv_obj_set_style_text_color(time_label, lv_color_hex(0xFFFF00), 0);
+    lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -15);
     
     // Date label - LARGE, CYAN
     date_label = lv_label_create(screen_container);
     lv_label_set_text(date_label, "2026/03/10");
     lv_obj_set_style_text_color(date_label, lv_color_hex(0x00FFFF), 0);
+    lv_obj_set_style_text_font(date_label, &lv_font_montserrat_32, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 35);
     
     // Separator line
@@ -188,12 +190,14 @@ esp_err_t lvgl_test_run(void) {
     lv_obj_t *battery_label = lv_label_create(screen_container);
     lv_label_set_text(battery_label, "BAT: 75%");
     lv_obj_set_style_text_color(battery_label, lv_color_hex(0x00FF00), 0);
+    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_28, 0);
     lv_obj_align(battery_label, LV_ALIGN_CENTER, 0, 130);
     
     // Status - WHITE, BOTTOM
     status_label = lv_label_create(screen_container);
     lv_label_set_text(status_label, "UP:0s H:0KB");
     lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(status_label, &lv_font_montserrat_24, 0);
     lv_obj_align(status_label, LV_ALIGN_BOTTOM_MID, 0, -5);
     
     // Show display on boot
