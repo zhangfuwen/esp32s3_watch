@@ -19,6 +19,7 @@
 #include "esp_heap_caps.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 // Forward declaration
 extern void watch_face_chinese_show(void);
@@ -189,8 +190,26 @@ static void play_btn_event_cb(lv_event_t *e) {
                 lv_obj_set_style_bg_color(play_btn, COLOR_TEXT_DIM, LV_PART_MAIN);
                 lv_label_set_text(timer_label, "00:00");
             } else {
-                ESP_LOGW(TAG, "No recording to play: buffer=%p, bytes=%d", record_buffer, recorded_bytes);
-                lv_label_set_text(status_label, "No recording to play");
+                // Test tone - generate 440Hz sine wave
+                ESP_LOGI(TAG, "No recording, playing test tone (440Hz)");
+                lv_label_set_text(status_label, "Test Tone 440Hz");
+                
+                int16_t test_tone[256];
+                const float freq = 440.0f;  // A4 note
+                const float sample_rate = 16000.0f;
+                const float amplitude = 16000.0f;
+                
+                for (int i = 0; i < 256; i++) {
+                    float t = i / sample_rate;
+                    test_tone[i] = (int16_t)(amplitude * sinf(2.0f * M_PI * freq * t));
+                }
+                
+                // Play test tone 10 times (160ms)
+                for (int i = 0; i < 10; i++) {
+                    i2s_audio_play(test_tone, sizeof(test_tone));
+                }
+                
+                lv_label_set_text(status_label, "Ready (Max 1s)");
             }
         } else {
             is_playing = false;
