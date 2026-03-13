@@ -25,8 +25,8 @@ extern void watch_face_chinese_show(void);
 
 static const char *TAG = "VOICE_REC";
 
-// Recording buffer (5 seconds at 16kHz, 16-bit mono = 160KB)
-#define RECORD_BUFFER_SIZE  (16000 * 2 * 5)  // 5 seconds
+// Recording buffer (1 second at 16kHz, 16-bit mono = 32KB)
+#define RECORD_BUFFER_SIZE  (16000 * 2 * 1)  // 1 second
 static int16_t *record_buffer = NULL;
 static size_t recorded_bytes = 0;
 
@@ -76,6 +76,11 @@ static void timer_cb(lv_timer_t *t) {
                 }
                 memcpy((uint8_t*)record_buffer + recorded_bytes, temp_buf, to_copy);
                 recorded_bytes += to_copy;
+                if (recorded_bytes % 1024 == 0) {
+                    ESP_LOGI(TAG, "Recorded %d bytes", recorded_bytes);
+                }
+            } else {
+                ESP_LOGW(TAG, "I2S record failed: %d", ret);
             }
         }
     }
@@ -110,9 +115,19 @@ static void record_btn_event_cb(lv_event_t *e) {
             
             // Allocate buffer if not already
             if (!record_buffer) {
+                ESP_LOGI(TAG, "Allocating record buffer: %d bytes", RECORD_BUFFER_SIZE);
                 record_buffer = heap_caps_malloc(RECORD_BUFFER_SIZE, MALLOC_CAP_INTERNAL);
                 if (!record_buffer) {
+                    ESP_LOGW(TAG, "Internal memory failed, trying SPIRAM");
                     record_buffer = heap_caps_malloc(RECORD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+                }
+                if (record_buffer) {
+                    ESP_LOGI(TAG, "Buffer allocated at %p", record_buffer);
+                } else {
+                    ESP_LOGE(TAG, "Failed to allocate record buffer!");
+                    lv_label_set_text(status_label, "Memory error");
+                    is_recording = false;
+                    return;
                 }
             }
             
@@ -122,10 +137,14 @@ static void record_btn_event_cb(lv_event_t *e) {
             lv_obj_set_style_bg_color(stop_btn, COLOR_STOP, LV_PART_MAIN);
         } else {
             // Stop recording
-            ESP_LOGI(TAG, "Stop recording");
+            ESP_LOGI(TAG, "Stop recording, recorded %d bytes", recorded_bytes);
             is_recording = false;
             
-            lv_label_set_text(status_label, "Recording saved");
+            if (recorded_bytes > 0) {
+                lv_label_set_text(status_label, "Saved (1s)");
+            } else {
+                lv_label_set_text(status_label, "No audio recorded");
+            }
             lv_obj_set_style_bg_color(record_btn, COLOR_RECORD, LV_PART_MAIN);
             lv_obj_set_style_bg_color(play_btn, COLOR_PLAY, LV_PART_MAIN);
             lv_obj_set_style_bg_color(stop_btn, COLOR_TEXT_DIM, LV_PART_MAIN);
@@ -141,26 +160,29 @@ static void play_btn_event_cb(lv_event_t *e) {
     lv_event_code_t code = lv_event_get_code(e);
     
     if (code == LV_EVENT_CLICKED && !is_recording) {
-        ESP_LOGI(TAG, "Play recording");
+        ESP_LOGI(TAG, "Play button clicked, recorded_bytes=%d", recorded_bytes);
         if (!is_playing) {
-            if (recorded_bytes > 0) {
+            if (record_buffer && recorded_bytes > 0) {
                 // Play the recorded audio
+                ESP_LOGI(TAG, "Playing %d bytes", recorded_bytes);
                 is_playing = true;
                 lv_label_set_text(status_label, "Playing...");
                 lv_obj_set_style_bg_color(play_btn, COLOR_PLAY, LV_PART_MAIN);
                 
                 // Simple playback (just play once)
-                i2s_audio_play(record_buffer, recorded_bytes);
+                esp_err_t ret = i2s_audio_play(record_buffer, recorded_bytes);
+                ESP_LOGI(TAG, "Playback returned: %d", ret);
                 
                 is_playing = false;
-                lv_label_set_text(status_label, "Ready to Record");
+                lv_label_set_text(status_label, "Ready (Max 1s)");
                 lv_obj_set_style_bg_color(play_btn, COLOR_TEXT_DIM, LV_PART_MAIN);
             } else {
+                ESP_LOGW(TAG, "No recording to play: buffer=%p, bytes=%d", record_buffer, recorded_bytes);
                 lv_label_set_text(status_label, "No recording to play");
             }
         } else {
             is_playing = false;
-            lv_label_set_text(status_label, "Ready to Record");
+            lv_label_set_text(status_label, "Ready (Max 1s)");
             lv_obj_set_style_bg_color(play_btn, COLOR_TEXT_DIM, LV_PART_MAIN);
         }
     }
@@ -245,7 +267,7 @@ void voice_recorder_init(void) {
     
     // Status label with larger font
     status_label = lv_label_create(recorder_screen);
-    lv_label_set_text(status_label, "Ready to Record");
+    lv_label_set_text(status_label, "Ready (Max 1s)");
     lv_obj_set_style_text_color(status_label, COLOR_TEXT_DIM, 0);
     lv_obj_set_style_text_font(status_label, &lv_font_montserrat_20, 0);
     lv_obj_align(status_label, LV_ALIGN_TOP_MID, 0, 75);
