@@ -39,6 +39,7 @@
 #include "lvgl_port.h"
 #include "lvgl_test.h"
 #include "watch_face_chinese.h"
+#include "voice_recorder.h"
 #include "imu_task.h"
 
 // Forward declarations
@@ -190,6 +191,9 @@ static esp_err_t init_hardware(void) {
         
         // Start LVGL tasks
         lvgl_start_tasks();
+        
+        // Initialize voice recorder (for swipe gesture)
+        voice_recorder_init();
         
         // Initialize premium Chinese watch face
         watch_face_chinese_init();

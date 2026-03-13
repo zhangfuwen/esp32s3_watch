@@ -80,9 +80,13 @@
 #define I2C_MASTER_RX_BUF_DISABLE   0
 #define I2C_MASTER_TX_BUF_DISABLE   0
 
-// I2C GPIO pins (shared with audio codec)
-#define I2C_MASTER_SDA_IO           AUDIO_CODEC_I2C_SDA_PIN  // GPIO 1
-#define I2C_MASTER_SCL_IO           AUDIO_CODEC_I2C_SCL_PIN  // GPIO 2
+// I2C GPIO pins (Touch/Battery/IMU)
+#define I2C_MASTER_SDA_IO           GPIO_NUM_39
+#define I2C_MASTER_SCL_IO           GPIO_NUM_40
+
+// Audio codec I2C (if separate bus needed)
+#define AUDIO_CODEC_I2C_SDA_PIN     GPIO_NUM_1
+#define AUDIO_CODEC_I2C_SCL_PIN     GPIO_NUM_2
 
 //==================== Power Management ====================
 // TODO: Add ADC pin for battery voltage monitoring

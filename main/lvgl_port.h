@@ -6,5 +6,6 @@
 esp_err_t lvgl_display_init(void);
 esp_err_t lvgl_init_system(void);
 esp_err_t lvgl_start_tasks(void);
+void lvgl_init_touch(void);
 
 #endif

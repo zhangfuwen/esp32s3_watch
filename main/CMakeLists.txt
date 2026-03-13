@@ -17,6 +17,7 @@ idf_component_register(
         "ui/watch_face_ui.c"
         "ui/watch_face.c"
         "ui/watch_face_chinese.c"
+        "ui/voice_recorder.c"
         # Fonts
         "fonts/chinese_16.c"
         # LVGL Port
@@ -30,6 +31,7 @@ idf_component_register(
         "drivers/imu_driver.c"
         "drivers/touch_driver.c"
         "drivers/battery_driver.c"
+        "drivers/cst816_touch.c"
         # Services
         "services/time_service.c"
         "services/motion_detect.c"

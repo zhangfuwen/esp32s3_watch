@@ -18,6 +18,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
+#include "drivers/cst816_touch.h"
 #include "esp_lcd_types.h"
 
 static const char *TAG = "LVGL_PORT";
@@ -95,9 +96,9 @@ esp_err_t lvgl_display_init(void)
     ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y));
     ESP_LOGI(TAG, "Offset OK");
     
-    // Invert
-    ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
-    ESP_LOGI(TAG, "Invert OK");
+    // Invert - try false for white screen fix
+    ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, false));
+    ESP_LOGI(TAG, "Invert OK (false)");
     
     // Display ON
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
@@ -182,6 +183,58 @@ esp_err_t lvgl_init_system(void)
     return ESP_OK;
 }
 
+// Touch input device read callback for LVGL
+static void lvgl_touch_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+{
+    static uint16_t last_x = 0;
+    static uint16_t last_y = 0;
+    
+    uint16_t x, y;
+    bool pressed;
+    
+    esp_err_t ret = cst816_touch_read(&x, &y, &pressed);
+    
+    if (ret == ESP_OK && pressed) {
+        data->point.x = x;
+        data->point.y = y;
+        data->state = LV_INDEV_STATE_PR;
+        last_x = x;
+        last_y = y;
+    } else {
+        data->point.x = last_x;
+        data->point.y = last_y;
+        data->state = LV_INDEV_STATE_REL;
+    }
+}
+
+// Initialize touch input device for LVGL
+void lvgl_init_touch(void)
+{
+    ESP_LOGI(TAG, "Initializing touch input device...");
+    
+    // Initialize CST816 touch driver
+    if (cst816_touch_init() != ESP_OK) {
+        ESP_LOGW(TAG, "Touch init failed, continuing without touch");
+        return;
+    }
+    
+    ESP_LOGI(TAG, "Touch driver initialized");
+    
+    // Register touch input device with LVGL
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = lvgl_touch_read;
+    
+    lv_indev_t *touch_indev = lv_indev_drv_register(&indev_drv);
+    
+    if (touch_indev) {
+        ESP_LOGI(TAG, "Touch input device registered");
+    } else {
+        ESP_LOGE(TAG, "Failed to register touch input device");
+    }
+}
+
 // LVGL tick task - OPTIMIZED: 10ms
 static void lvgl_tick_task(void *pvParameters)
 {
@@ -203,7 +256,7 @@ static void lvgl_main_task(void *pvParameters)
 // Start LVGL tasks - OPTIMIZED
 esp_err_t lvgl_start_tasks(void)
 {
-    ESP_LOGI(TAG, "Starting LVGL tasks (OPTIMIZED)...");
+    ESP_LOGI(TAG, "Starting LVGL tasks...");
     
     // Create tick task
     xTaskCreate(lvgl_tick_task, "lvgl_tick", 4096, NULL, 5, NULL);
@@ -211,7 +264,10 @@ esp_err_t lvgl_start_tasks(void)
     // Create main task - OPTIMIZED: Higher priority
     xTaskCreate(lvgl_main_task, "lvgl_main", 8192, NULL, 6, NULL);
     
-    ESP_LOGI(TAG, "LVGL tasks started (50 FPS)");
+    // Initialize touch input device
+    lvgl_init_touch();
+    
+    ESP_LOGI(TAG, "LVGL tasks started");
     
     return ESP_OK;
 }
