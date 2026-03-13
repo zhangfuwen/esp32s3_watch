@@ -31,12 +31,30 @@ static esp_err_t es8311_init(void) {
     ESP_LOGI(TAG, "Initializing ES8311 codec...");
     
     // ES8311 configuration via I2C
+    ESP_LOGI(TAG, "Resetting ES8311...");
     es8311_write_reg(0x00, 0x80);  // Chip reset
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(50));
     es8311_write_reg(0x00, 0x00);  // Release reset
-    es8311_write_reg(0x01, 0x00);  // Power up all
+    vTaskDelay(pdMS_TO_TICKS(50));
     
-    ESP_LOGI(TAG, "ES8311 initialized");
+    // Power up
+    ESP_LOGI(TAG, "Powering up ES8311...");
+    es8311_write_reg(0x01, 0x00);  // Power up all
+    vTaskDelay(pdMS_TO_TICKS(50));
+    
+    // Configure for I2S playback
+    ESP_LOGI(TAG, "Configuring ES8311 for I2S...");
+    es8311_write_reg(0x08, 0x10);  // DAC power up
+    es8311_write_reg(0x09, 0x00);  // DAC stereo
+    es8311_write_reg(0x0A, 0x18);  // DAC volume (max)
+    es8311_write_reg(0x0B, 0x00);  // ADC volume (mute)
+    es8311_write_reg(0x0C, 0x00);  // ALC off
+    es8311_write_reg(0x32, 0x00);  // DAC mixer
+    es8311_write_reg(0x33, 0x00);  // DAC mixer
+    es8311_write_reg(0x34, 0x1C);  // LOUT1 volume (max)
+    es8311_write_reg(0x35, 0x1C);  // ROUT1 volume (max)
+    
+    ESP_LOGI(TAG, "ES8311 initialized for playback");
     return ESP_OK;
 }
 
@@ -113,13 +131,32 @@ esp_err_t i2s_audio_record(int16_t *buffer, size_t size) {
 
 esp_err_t i2s_audio_play(const int16_t *buffer, size_t size) {
     if (!is_initialized || !tx_handle) {
+        ESP_LOGE(TAG, "I2S not initialized or tx_handle NULL");
         return ESP_ERR_INVALID_STATE;
     }
     
-    size_t bytes_written;
-    esp_err_t ret = i2s_channel_write(tx_handle, buffer, size, &bytes_written, pdMS_TO_TICKS(100));
+    if (!buffer || size == 0) {
+        ESP_LOGE(TAG, "Invalid buffer or size");
+        return ESP_ERR_INVALID_ARG;
+    }
     
-    return (ret == ESP_OK && bytes_written > 0) ? ESP_OK : ESP_ERR_TIMEOUT;
+    ESP_LOGI(TAG, "Playing %d bytes via I2S", size);
+    
+    size_t bytes_written;
+    esp_err_t ret = i2s_channel_write(tx_handle, buffer, size, &bytes_written, pdMS_TO_TICKS(1000));
+    
+    ESP_LOGI(TAG, "I2S write returned: %d, bytes_written: %d", ret, bytes_written);
+    
+    if (ret == ESP_OK && bytes_written == size) {
+        ESP_LOGI(TAG, "Playback complete");
+        return ESP_OK;
+    } else if (ret == ESP_ERR_TIMEOUT) {
+        ESP_LOGW(TAG, "Playback timeout (wrote %d of %d bytes)", bytes_written, size);
+        return ESP_ERR_TIMEOUT;
+    } else {
+        ESP_LOGE(TAG, "Playback failed: %d", ret);
+        return ret;
+    }
 }
 
 void i2s_audio_deinit(void) {
