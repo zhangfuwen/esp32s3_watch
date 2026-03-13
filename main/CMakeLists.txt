@@ -18,6 +18,7 @@ idf_component_register(
         "ui/watch_face.c"
         "ui/watch_face_chinese.c"
         "ui/voice_recorder.c"
+        "drivers/i2s_audio.c"
         # Fonts
         "fonts/chinese_16.c"
         # LVGL Port

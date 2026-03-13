@@ -12,9 +12,11 @@
 #include "voice_recorder.h"
 #include "board_config.h"
 #include "watch_face_chinese.h"
+#include "i2s_audio.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "lvgl.h"
+#include "esp_heap_caps.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -22,6 +24,11 @@
 extern void watch_face_chinese_show(void);
 
 static const char *TAG = "VOICE_REC";
+
+// Recording buffer (5 seconds at 16kHz, 16-bit mono = 160KB)
+#define RECORD_BUFFER_SIZE  (16000 * 2 * 5)  // 5 seconds
+static int16_t *record_buffer = NULL;
+static size_t recorded_bytes = 0;
 
 // Static variables
 static lv_obj_t *recorder_screen = NULL;
@@ -57,6 +64,20 @@ static void timer_cb(lv_timer_t *t) {
         char buf[20];
         snprintf(buf, sizeof(buf), "%02lu:%02lu", minutes, seconds);
         lv_label_set_text(timer_label, buf);
+        
+        // Record audio data
+        if (record_buffer && recorded_bytes < RECORD_BUFFER_SIZE) {
+            int16_t temp_buf[256];
+            esp_err_t ret = i2s_audio_record(temp_buf, sizeof(temp_buf));
+            if (ret == ESP_OK) {
+                size_t to_copy = sizeof(temp_buf);
+                if (recorded_bytes + to_copy > RECORD_BUFFER_SIZE) {
+                    to_copy = RECORD_BUFFER_SIZE - recorded_bytes;
+                }
+                memcpy((uint8_t*)record_buffer + recorded_bytes, temp_buf, to_copy);
+                recorded_bytes += to_copy;
+            }
+        }
     }
 }
 
@@ -85,6 +106,15 @@ static void record_btn_event_cb(lv_event_t *e) {
             is_recording = true;
             is_playing = false;
             recording_start_time = esp_timer_get_time();
+            recorded_bytes = 0;
+            
+            // Allocate buffer if not already
+            if (!record_buffer) {
+                record_buffer = heap_caps_malloc(RECORD_BUFFER_SIZE, MALLOC_CAP_INTERNAL);
+                if (!record_buffer) {
+                    record_buffer = heap_caps_malloc(RECORD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+                }
+            }
             
             lv_label_set_text(status_label, "Recording...");
             lv_obj_set_style_bg_color(record_btn, COLOR_RECORD, LV_PART_MAIN);
@@ -113,9 +143,21 @@ static void play_btn_event_cb(lv_event_t *e) {
     if (code == LV_EVENT_CLICKED && !is_recording) {
         ESP_LOGI(TAG, "Play recording");
         if (!is_playing) {
-            is_playing = true;
-            lv_label_set_text(status_label, "Playing...");
-            lv_obj_set_style_bg_color(play_btn, COLOR_PLAY, LV_PART_MAIN);
+            if (recorded_bytes > 0) {
+                // Play the recorded audio
+                is_playing = true;
+                lv_label_set_text(status_label, "Playing...");
+                lv_obj_set_style_bg_color(play_btn, COLOR_PLAY, LV_PART_MAIN);
+                
+                // Simple playback (just play once)
+                i2s_audio_play(record_buffer, recorded_bytes);
+                
+                is_playing = false;
+                lv_label_set_text(status_label, "Ready to Record");
+                lv_obj_set_style_bg_color(play_btn, COLOR_TEXT_DIM, LV_PART_MAIN);
+            } else {
+                lv_label_set_text(status_label, "No recording to play");
+            }
         } else {
             is_playing = false;
             lv_label_set_text(status_label, "Ready to Record");
@@ -148,6 +190,9 @@ static void stop_btn_event_cb(lv_event_t *e) {
 
 void voice_recorder_init(void) {
     ESP_LOGI(TAG, "Initializing voice recorder (Premium UI)...");
+    
+    // Initialize I2S audio
+    i2s_audio_init();
     
     // Create screen with gradient background
     recorder_screen = lv_obj_create(NULL);
