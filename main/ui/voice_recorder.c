@@ -169,13 +169,25 @@ static void play_btn_event_cb(lv_event_t *e) {
                 lv_label_set_text(status_label, "Playing...");
                 lv_obj_set_style_bg_color(play_btn, COLOR_PLAY, LV_PART_MAIN);
                 
-                // Simple playback (just play once)
+                // Calculate playback duration
+                uint32_t duration_ms = (recorded_bytes / 32) + 100;  // ~16kHz mono = 32KB/s
+                ESP_LOGI(TAG, "Playback duration: %lu ms", (unsigned long)duration_ms);
+                
+                // Start playback timer
+                uint32_t start_time = (uint32_t)(esp_timer_get_time() / 1000);
+                
+                // Simple playback
                 esp_err_t ret = i2s_audio_play(record_buffer, recorded_bytes);
                 ESP_LOGI(TAG, "Playback returned: %d", ret);
+                
+                // Update timer during playback
+                uint32_t elapsed = ((uint32_t)(esp_timer_get_time() / 1000)) - start_time;
+                ESP_LOGI(TAG, "Actual playback time: %lu ms", (unsigned long)elapsed);
                 
                 is_playing = false;
                 lv_label_set_text(status_label, "Ready (Max 1s)");
                 lv_obj_set_style_bg_color(play_btn, COLOR_TEXT_DIM, LV_PART_MAIN);
+                lv_label_set_text(timer_label, "00:00");
             } else {
                 ESP_LOGW(TAG, "No recording to play: buffer=%p, bytes=%d", record_buffer, recorded_bytes);
                 lv_label_set_text(status_label, "No recording to play");
