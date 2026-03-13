@@ -85,7 +85,8 @@ static void record_btn_event_cb(lv_event_t *e) {
             lv_obj_set_style_bg_color(play_btn, COLOR_PLAY, LV_PART_MAIN);
             lv_obj_set_style_bg_color(stop_btn, COLOR_GRAY, LV_PART_MAIN);
             
-            // Add to list
+            // Add to list - SKIP for now (will be in separate screen)
+            /*
             if (list_container) {
                 lv_obj_t *item = lv_btn_create(list_container);
                 lv_obj_set_size(item, lv_pct(100), 50);
@@ -99,6 +100,7 @@ static void record_btn_event_cb(lv_event_t *e) {
                 lv_obj_set_style_text_color(label, COLOR_TEXT, 0);
                 lv_obj_align(label, LV_ALIGN_LEFT_MID, 10, 0);
             }
+            */
         }
     }
 }
@@ -246,7 +248,9 @@ void voice_recorder_init(void) {
     lv_obj_set_style_text_font(play_icon, &lv_font_montserrat_24, 0);
     lv_obj_align(play_icon, LV_ALIGN_CENTER, 0, 0);
     
-    // Recording list container
+    // Recording list container - HIDDEN (will be in separate screen)
+    list_container = NULL;
+    /*
     list_container = lv_obj_create(recorder_screen);
     lv_obj_set_size(list_container, lv_pct(90), 150);
     lv_obj_align(list_container, LV_ALIGN_BOTTOM_MID, 0, -10);
@@ -255,6 +259,7 @@ void voice_recorder_init(void) {
     lv_obj_set_flex_flow(list_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(list_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_scroll_dir(list_container, LV_DIR_VER);
+    */
     
     ESP_LOGI(TAG, "Voice recorder initialized");
 }
