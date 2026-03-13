@@ -30,6 +30,19 @@ static esp_err_t es8311_write_reg(uint8_t reg, uint8_t value) {
 static esp_err_t es8311_init(void) {
     ESP_LOGI(TAG, "Initializing ES8311 codec...");
     
+    // Configure PA pin (speaker amplifier enable)
+    ESP_LOGI(TAG, "Configuring PA pin (GPIO48)...");
+    gpio_config_t pa_conf = {
+        .pin_bit_mask = (1ULL << AUDIO_CODEC_PA_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    };
+    gpio_config(&pa_conf);
+    gpio_set_level(AUDIO_CODEC_PA_PIN, 1);  // Enable PA
+    ESP_LOGI(TAG, "PA enabled");
+    vTaskDelay(pdMS_TO_TICKS(50));
+    
     // ES8311 configuration via I2C
     ESP_LOGI(TAG, "Resetting ES8311...");
     es8311_write_reg(0x00, 0x80);  // Chip reset
@@ -42,19 +55,34 @@ static esp_err_t es8311_init(void) {
     es8311_write_reg(0x01, 0x00);  // Power up all
     vTaskDelay(pdMS_TO_TICKS(50));
     
-    // Configure for I2S playback
-    ESP_LOGI(TAG, "Configuring ES8311 for I2S...");
+    // Configure I2S format
+    ESP_LOGI(TAG, "Configuring I2S format...");
+    es8311_write_reg(0x04, 0x00);  // I2S format, 16-bit
+    es8311_write_reg(0x05, 0x00);  // Sample rate (auto)
+    
+    // Configure DAC output
+    ESP_LOGI(TAG, "Configuring DAC output...");
     es8311_write_reg(0x08, 0x10);  // DAC power up
     es8311_write_reg(0x09, 0x00);  // DAC stereo
     es8311_write_reg(0x0A, 0x18);  // DAC volume (max)
-    es8311_write_reg(0x0B, 0x00);  // ADC volume (mute)
-    es8311_write_reg(0x0C, 0x00);  // ALC off
-    es8311_write_reg(0x32, 0x00);  // DAC mixer
-    es8311_write_reg(0x33, 0x00);  // DAC mixer
+    
+    // Configure output mixer and routing
+    ESP_LOGI(TAG, "Configuring output mixer...");
+    es8311_write_reg(0x2D, 0x00);  // LOUT1 source = DAC_L
+    es8311_write_reg(0x2E, 0x00);  // ROUT1 source = DAC_R
+    es8311_write_reg(0x32, 0x00);  // DAC to mixer L
+    es8311_write_reg(0x33, 0x00);  // DAC to mixer R
     es8311_write_reg(0x34, 0x1C);  // LOUT1 volume (max)
     es8311_write_reg(0x35, 0x1C);  // ROUT1 volume (max)
+    es8311_write_reg(0x36, 0x00);  // LOUT2 off
+    es8311_write_reg(0x37, 0x00);  // ROUT2 off
     
-    ESP_LOGI(TAG, "ES8311 initialized for playback");
+    // Enable speakers
+    ESP_LOGI(TAG, "Enabling speakers...");
+    es8311_write_reg(0x38, 0x00);  // LOUT1 amp enable
+    es8311_write_reg(0x39, 0x00);  // ROUT1 amp enable
+    
+    ESP_LOGI(TAG, "ES8311 initialized for speaker output (PA enabled)");
     return ESP_OK;
 }
 
