@@ -61,6 +61,12 @@ void watch_face_chinese_user_activity(void) {
     last_activity_time = now;
 }
 
+void watch_face_chinese_show(void) {
+    ESP_LOGI(TAG, "Show watch face");
+    watch_face_chinese_user_activity();
+    last_activity_time = (uint32_t)(esp_timer_get_time() / 1000);
+}
+
 static void display_turn_off(void) {
     if (display_on) {
         if (screen_container) {

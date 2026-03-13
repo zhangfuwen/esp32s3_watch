@@ -6,5 +6,6 @@
 
 void watch_face_chinese_init(void);
 void watch_face_chinese_user_activity(void);
+void watch_face_chinese_show(void);
 
 #endif

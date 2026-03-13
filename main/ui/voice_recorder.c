@@ -11,11 +11,15 @@
 
 #include "voice_recorder.h"
 #include "board_config.h"
+#include "watch_face_chinese.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "lvgl.h"
 #include <stdio.h>
 #include <string.h>
+
+// Forward declaration
+extern void watch_face_chinese_show(void);
 
 static const char *TAG = "VOICE_REC";
 
@@ -144,11 +148,11 @@ static void back_btn_event_cb(lv_event_t *e) {
     
     if (code == LV_EVENT_CLICKED) {
         ESP_LOGI(TAG, "Back to watch face");
-        // TODO: Navigate back to watch face
-        // For now, just hide this screen
+        // Hide recorder screen and show watch face
         if (recorder_screen) {
             lv_obj_add_flag(recorder_screen, LV_OBJ_FLAG_HIDDEN);
         }
+        watch_face_chinese_show();
     }
 }
 
