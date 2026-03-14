@@ -34,6 +34,9 @@ static lv_obj_t *ble_test_screen = NULL;
 static lv_obj_t *wifi_test_screen = NULL;
 static lv_obj_t *button_test_screen = NULL;
 
+// Display test state
+static uint8_t display_test_step = 0;
+
 // Test state
 // static bool test_running = false;
 // static lv_timer_t *test_timer = NULL;
@@ -92,29 +95,30 @@ static void test_item_event_cb(lv_event_t *e) {
         ESP_LOGI(TAG, "Selected test: %s", text);
         
         if (strcmp(text, "Display Test") == 0) {
-            lv_scr_load(display_test_screen);
             lv_obj_clear_flag(display_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(display_test_screen);
+            display_test_step = 0;
         } else if (strcmp(text, "Touch Test") == 0) {
-            lv_scr_load(touch_test_screen);
             lv_obj_clear_flag(touch_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(touch_test_screen);
         } else if (strcmp(text, "Audio Test") == 0) {
-            lv_scr_load(audio_test_screen);
             lv_obj_clear_flag(audio_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(audio_test_screen);
         } else if (strcmp(text, "IMU Test") == 0) {
-            lv_scr_load(imu_test_screen);
             lv_obj_clear_flag(imu_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(imu_test_screen);
         } else if (strcmp(text, "Battery Test") == 0) {
-            lv_scr_load(battery_test_screen);
             lv_obj_clear_flag(battery_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(battery_test_screen);
         } else if (strcmp(text, "BLE Test") == 0) {
-            lv_scr_load(ble_test_screen);
             lv_obj_clear_flag(ble_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(ble_test_screen);
         } else if (strcmp(text, "WiFi Test") == 0) {
-            lv_scr_load(wifi_test_screen);
             lv_obj_clear_flag(wifi_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(wifi_test_screen);
         } else if (strcmp(text, "Button Test") == 0) {
-            lv_scr_load(button_test_screen);
             lv_obj_clear_flag(button_test_screen, LV_OBJ_FLAG_HIDDEN);
+            lv_scr_load(button_test_screen);
         }
     }
 }
@@ -171,7 +175,6 @@ static void create_test_menu(void) {
 
 //==================== Display Test ====================
 
-static uint8_t display_test_step = 0;
 static lv_obj_t *display_test_label = NULL;
 
 static void display_test_timer_cb(lv_timer_t *timer) {
@@ -347,6 +350,7 @@ static void create_audio_test(void) {
 static void back_btn_event_cb(lv_event_t *e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
         ESP_LOGI(TAG, "Back to test menu");
+        lv_obj_clear_flag(test_menu_screen, LV_OBJ_FLAG_HIDDEN);
         lv_scr_load(test_menu_screen);
     }
 }

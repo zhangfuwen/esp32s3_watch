@@ -199,6 +199,10 @@ static esp_err_t init_hardware(void) {
         // Initialize hardware test suite
         hw_tests_init();
         
+        // Show test menu first
+        vTaskDelay(pdMS_TO_TICKS(500));
+        hw_tests_show_menu();
+        
         // Initialize premium Chinese watch face
         watch_face_chinese_init();
     }
