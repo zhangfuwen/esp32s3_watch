@@ -40,6 +40,7 @@
 #include "lvgl_test.h"
 #include "watch_face_chinese.h"
 #include "voice_recorder.h"
+#include "hw_tests.h"
 #include "imu_task.h"
 
 // Forward declarations
@@ -194,6 +195,9 @@ static esp_err_t init_hardware(void) {
         
         // Initialize voice recorder (for swipe gesture)
         voice_recorder_init();
+        
+        // Initialize hardware test suite
+        hw_tests_init();
         
         // Initialize premium Chinese watch face
         watch_face_chinese_init();
