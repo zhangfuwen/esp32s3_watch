@@ -35,8 +35,8 @@ static lv_obj_t *wifi_test_screen = NULL;
 static lv_obj_t *button_test_screen = NULL;
 
 // Test state
-static bool test_running = false;
-static lv_timer_t *test_timer = NULL;
+// static bool test_running = false;
+// static lv_timer_t *test_timer = NULL;
 
 // Forward declarations
 static void create_test_menu(void);
@@ -378,65 +378,95 @@ void hw_tests_show_menu(void) {
 static void create_touch_test(void) {
     touch_test_screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(touch_test_screen, lv_color_hex(0x1a1a2e), 0);
-    create_header(touch_test_screen, "Touch Test");
+    
+    lv_obj_t *back_btn = create_header(touch_test_screen, "Touch Test");
+    lv_obj_add_event_cb(back_btn, back_btn_event_cb, LV_EVENT_CLICKED, NULL);
+    
     lv_obj_t *lbl = lv_label_create(touch_test_screen);
-    lv_label_set_text(lbl, "Touch screen\n(X, Y coordinates)");
+    lv_label_set_text(lbl, "Touch Test\n(Touch the screen)");
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+    
     lv_obj_add_flag(touch_test_screen, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_imu_test(void) {
     imu_test_screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(imu_test_screen, lv_color_hex(0x1a1a2e), 0);
-    create_header(imu_test_screen, "IMU Test");
+    
+    lv_obj_t *back_btn = create_header(imu_test_screen, "IMU Test");
+    lv_obj_add_event_cb(back_btn, back_btn_event_cb, LV_EVENT_CLICKED, NULL);
+    
     lv_obj_t *lbl = lv_label_create(imu_test_screen);
-    lv_label_set_text(lbl, "IMU Data\n(Accel, Gyro)");
+    lv_label_set_text(lbl, "IMU Test\n(QMI8658C)\n\nAccel: X=0 Y=0 Z=0\nGyro: X=0 Y=0 Z=0");
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+    
     lv_obj_add_flag(imu_test_screen, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_battery_test(void) {
     battery_test_screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(battery_test_screen, lv_color_hex(0x1a1a2e), 0);
-    create_header(battery_test_screen, "Battery Test");
+    
+    lv_obj_t *back_btn = create_header(battery_test_screen, "Battery Test");
+    lv_obj_add_event_cb(back_btn, back_btn_event_cb, LV_EVENT_CLICKED, NULL);
+    
     lv_obj_t *lbl = lv_label_create(battery_test_screen);
-    lv_label_set_text(lbl, "Battery Status\n(Voltage, %)");
+    lv_label_set_text(lbl, "Battery Test\n(MAX17048G)\n\nVoltage: 3.8V\nLevel: 75%\nCharging: No");
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+    
     lv_obj_add_flag(battery_test_screen, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_ble_test(void) {
     ble_test_screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(ble_test_screen, lv_color_hex(0x1a1a2e), 0);
-    create_header(ble_test_screen, "BLE Test");
+    
+    lv_obj_t *back_btn = create_header(ble_test_screen, "BLE Test");
+    lv_obj_add_event_cb(back_btn, back_btn_event_cb, LV_EVENT_CLICKED, NULL);
+    
     lv_obj_t *lbl = lv_label_create(ble_test_screen);
-    lv_label_set_text(lbl, "Bluetooth LE\n(Scan, Advertise)");
+    lv_label_set_text(lbl, "BLE Test\n(Bluetooth 5.0)\n\nStatus: Ready\nDevices: 0\n\nClick to scan");
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+    
     lv_obj_add_flag(ble_test_screen, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_wifi_test(void) {
     wifi_test_screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(wifi_test_screen, lv_color_hex(0x1a1a2e), 0);
-    create_header(wifi_test_screen, "WiFi Test");
+    
+    lv_obj_t *back_btn = create_header(wifi_test_screen, "WiFi Test");
+    lv_obj_add_event_cb(back_btn, back_btn_event_cb, LV_EVENT_CLICKED, NULL);
+    
     lv_obj_t *lbl = lv_label_create(wifi_test_screen);
-    lv_label_set_text(lbl, "WiFi Network\n(Scan, Connect)");
+    lv_label_set_text(lbl, "WiFi Test\n(802.11 b/g/n)\n\nStatus: Disconnected\nNetworks: 0\n\nClick to scan");
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+    
     lv_obj_add_flag(wifi_test_screen, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_button_test(void) {
     button_test_screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(button_test_screen, lv_color_hex(0x1a1a2e), 0);
-    create_header(button_test_screen, "Button Test");
+    
+    lv_obj_t *back_btn = create_header(button_test_screen, "Button Test");
+    lv_obj_add_event_cb(back_btn, back_btn_event_cb, LV_EVENT_CLICKED, NULL);
+    
     lv_obj_t *lbl = lv_label_create(button_test_screen);
-    lv_label_set_text(lbl, "Button Test\n(Press BOOT)");
+    lv_label_set_text(lbl, "Button Test\n\nBOOT Button (GPIO0)\n\nStatus: Not pressed\n\nPress BOOT button\nto test");
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
     lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+    
     lv_obj_add_flag(button_test_screen, LV_OBJ_FLAG_HIDDEN);
 }
